@@ -1,0 +1,54 @@
+experiment_name: landcover-trees
+experiment_type: landcover
+
+data_dir: /lscratch/jacaraba/srlite/landcover-test
+
+seed: 42
+gpu_devices: 0,1,2,3
+mixed_precision: True
+xla: False
+
+input_bands:
+  - CoastalBlue
+  - Blue
+  - Green
+  - Yellow
+  - Red
+  - RedEdge
+  - NIR1
+  - NIR2
+
+output_bands:
+  - Blue
+  - Green
+  - Red
+  - NIR1
+
+mean:
+  - 1
+std:
+  - 1
+
+expand_dims: True
+tile_size: 512
+include_classes: True
+augment: True
+standardize: True
+batch_size: 32
+n_classes: 1
+test_size: 0.20
+learning_rate: 0.0001
+max_epochs: 6000
+patience: 10
+loss: binary_crossentropy
+
+# window_size: 8192
+window_size: 10000
+pred_batch_size: 64
+inference_overlap: 2
+inference_treshold: 0.50
+
+# Prediction location
+model_filename: /lscratch/jacaraba/srlite/landcover-test/model/18-0.27.hdf5
+inference_regex: '/adapt/nobackup/projects/ilab/projects/srlite/input/TOA_v2/Yukon_Delta/5-toas/*.tif'
+inference_save_dir: /adapt/nobackup/projects/ilab/projects/CloudMask/SRLite/clouds-binary-pytorch-Yukon_Delta-2022-03-24
