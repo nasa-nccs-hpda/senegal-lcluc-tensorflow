@@ -22,7 +22,8 @@ sys.path.append('/adapt/nobackup/people/jacaraba/development/tensorflow-caney')
 from tensorflow_caney.config.cnn_config import Config
 from tensorflow_caney.utils.system import seed_everything
 from tensorflow_caney.utils.data import gen_random_tiles, read_dataset_csv
-from tensorflow_caney.utils.data import modify_bands
+from tensorflow_caney.utils.data import modify_bands, get_dataset_filenames
+
 from tensorflow_caney.utils import indices
 
 CHUNKS = {'band': 'auto', 'x': 'auto', 'y': 'auto'}
@@ -102,7 +103,32 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
             out_label_dir=labels_dir
         )
 
-    # TODO: calculate on the fly metrics mean and std
+    # Calculate mean and std values for training
+    data_filenames = get_dataset_filenames(images_dir)
+    label_filenames = get_dataset_filenames(labels_dir)
+    logging.info(f'Mean and std values from {len(data_filenames)} files.')
+
+    # Temporarily disable standardization and augmentation
+    #self.conf.standardize = False
+    #self.conf.augment = False
+
+    # Set tensorflow dataset
+    #tf_dataset = self.tf_dataset(
+    #    data_filenames, label_filenames,
+    #    read_func=self.tf_data_loader, repeat=False,
+    #    batch_size=self.conf.batch_size
+    #)
+
+    # Get mean and std array
+    #mean, std = utils.get_mean_std_dataset(tf_dataset)
+    #logging.info(f'Mean: {mean}, Std: {std}')
+    #np.save(
+    #    os.path.join(
+    #        conf.data_dir, f'mean-{conf.experiment_name}.npy'), mean.numpy())
+    #np.save(
+    #    os.path.join(
+    #        conf.data_dir, f'std-{conf.experiment_name}.npy'), std.numpy())
+
 
     logging.info('Done with preprocessing stage')
     return

@@ -50,5 +50,5 @@ inference_treshold: 0.50
 
 # Prediction location
 model_filename: /lscratch/jacaraba/srlite/landcover-test/model/18-0.27.hdf5
-inference_regex: '/adapt/nobackup/projects/ilab/projects/srlite/input/TOA_v2/Yukon_Delta/5-toas/*.tif'
+inference_regex: '/adapt/nobackup/people/zwwillia/SR_lite/SRlite_cloudMasks/CloudMasks/WV02_20110818_M1BS_103001000CCC9000/WV02_20110818_M1BS_1030010001_CLIPPED.tif'
 inference_save_dir: /adapt/nobackup/projects/ilab/projects/CloudMask/SRLite/clouds-binary-pytorch-Yukon_Delta-2022-03-24
