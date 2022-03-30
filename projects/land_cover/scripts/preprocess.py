@@ -88,6 +88,7 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
         # TODO: Substract values if classes do not start from 0
         # Not sure how, this involves having to check for min that
         # sometimes is not 1 and is a negative no-data value
+        # the addition of this value is important
         
         # Modify labels, sometimes we need to merge some training classes
         label = modify_label_classes(label, conf.modify_labels)
