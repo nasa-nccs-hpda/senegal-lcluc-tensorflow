@@ -24,13 +24,18 @@ output_bands:
   - Red
   - NIR1
 
-mean:
-  - 1
-std:
-  - 1
+modify_labels:
+  - "x == 5": 3
+  - "x == 4": 3
+  - "x == 3": 3
+
+#mean:
+#  - 1
+#std:
+#  - 1
 
 expand_dims: True
-tile_size: 512
+tile_size: 256
 include_classes: True
 augment: True
 standardize: True

@@ -23,6 +23,8 @@ from tensorflow_caney.config.cnn_config import Config
 from tensorflow_caney.utils.system import seed_everything
 from tensorflow_caney.utils.data import gen_random_tiles, read_dataset_csv
 from tensorflow_caney.utils.data import modify_bands, get_dataset_filenames
+from tensorflow_caney.utils.data import modify_label_classes
+from tensorflow_caney.utils.segmentation_tools import SegmentationDataLoader
 
 from tensorflow_caney.utils import indices
 
@@ -67,7 +69,6 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
         logging.info(f'Image: {image.shape}, Label: {label.shape}')
 
         # TODO: CALCULATE INDICES HERE
-        # TODO: CALCULATE LABELS TO REMOVE e.g. 5 convert to 0
 
         # Lower the number of bands if required
         image = modify_bands(
@@ -83,10 +84,18 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
         image = cp.moveaxis(image, 0, -1)
         label = cp.squeeze(label) if len(label.shape) != 2 else label
         logging.info(f'Label classes from image: {cp.unique(label)}')
+
+        # TODO: Substract values if classes do not start from 0
+        # Not sure how, this involves having to check for min that
+        # sometimes is not 1 and is a negative no-data value
         
+        # Modify labels, sometimes we need to merge some training classes
+        label = modify_label_classes(label, conf.modify_labels)
+        logging.info(f'Label classes after modify_labels: {cp.unique(label)}')
+
         # Making labels int type and grabbing some information
         label = label.astype(np.uint8)
-        logging.info(f'Label min {label.min()}, max {label.max()}')
+        logging.info(f'Label classes min {label.min()}, max {label.max()}')
 
         # generate random tiles
         gen_random_tiles(
@@ -109,8 +118,12 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
     logging.info(f'Mean and std values from {len(data_filenames)} files.')
 
     # Temporarily disable standardization and augmentation
-    #self.conf.standardize = False
-    #self.conf.augment = False
+    #conf.standardize = False
+
+    # Set main data loader
+    #main_data_loader = SegmentationDataLoader(
+    #    data_filenames, label_filenames, conf
+    #)
 
     # Set tensorflow dataset
     #tf_dataset = self.tf_dataset(
@@ -171,10 +184,10 @@ def main() -> None:
     schema = omegaconf.OmegaConf.structured(Config)
     conf = omegaconf.OmegaConf.load(args.config_file)
     try:
-        omegaconf.OmegaConf.merge(schema, conf)
+        conf = omegaconf.OmegaConf.merge(schema, conf)
     except BaseException as err:
         sys.exit(f"ERROR: {err}")
-    
+
     # Seed everything
     seed_everything(conf.seed)
 
