@@ -162,7 +162,7 @@ def main() -> None:
     schema = omegaconf.OmegaConf.structured(Config)
     conf = omegaconf.OmegaConf.load(args.config_file)
     try:
-        omegaconf.OmegaConf.merge(schema, conf)
+        conf = omegaconf.OmegaConf.merge(schema, conf)
     except BaseException as err:
         sys.exit(f"ERROR: {err}")
     

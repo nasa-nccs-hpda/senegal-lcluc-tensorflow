@@ -22,7 +22,10 @@ sys.path.append('/adapt/nobackup/people/jacaraba/development/tensorflow-caney')
 from tensorflow_caney.config.cnn_config import Config
 from tensorflow_caney.utils.system import seed_everything
 from tensorflow_caney.utils.data import gen_random_tiles, read_dataset_csv
-from tensorflow_caney.utils.data import modify_bands
+from tensorflow_caney.utils.data import modify_bands, get_dataset_filenames
+from tensorflow_caney.utils.data import modify_label_classes
+from tensorflow_caney.utils.segmentation_tools import SegmentationDataLoader
+
 from tensorflow_caney.utils import indices
 
 CHUNKS = {'band': 'auto', 'x': 'auto', 'y': 'auto'}
@@ -66,7 +69,6 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
         logging.info(f'Image: {image.shape}, Label: {label.shape}')
 
         # TODO: CALCULATE INDICES HERE
-        # TODO: CALCULATE LABELS TO REMOVE e.g. 5 convert to 0
 
         # Lower the number of bands if required
         image = modify_bands(
@@ -82,10 +84,19 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
         image = cp.moveaxis(image, 0, -1)
         label = cp.squeeze(label) if len(label.shape) != 2 else label
         logging.info(f'Label classes from image: {cp.unique(label)}')
+
+        # TODO: Temporary fix, only normalize the data
+        image = image / 10000.0
         
+        # Modify labels, sometimes we need to merge some training classes
+        # Substract values if classes do not start from 0, this is done first
+        label = modify_label_classes(
+            label, conf.modify_labels, conf.substract_labels)
+        logging.info(f'Label classes after modify_labels: {cp.unique(label)}')
+
         # Making labels int type and grabbing some information
         label = label.astype(np.uint8)
-        logging.info(f'Label min {label.min()}, max {label.max()}')
+        logging.info(f'Label classes min {label.min()}, max {label.max()}')
 
         # generate random tiles
         gen_random_tiles(
@@ -102,7 +113,36 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
             out_label_dir=labels_dir
         )
 
-    # TODO: calculate on the fly metrics mean and std
+    # Calculate mean and std values for training
+    data_filenames = get_dataset_filenames(images_dir)
+    label_filenames = get_dataset_filenames(labels_dir)
+    logging.info(f'Mean and std values from {len(data_filenames)} files.')
+
+    # Temporarily disable standardization and augmentation
+    #conf.standardize = False
+
+    # Set main data loader
+    #main_data_loader = SegmentationDataLoader(
+    #    data_filenames, label_filenames, conf
+    #)
+
+    # Set tensorflow dataset
+    #tf_dataset = self.tf_dataset(
+    #    data_filenames, label_filenames,
+    #    read_func=self.tf_data_loader, repeat=False,
+    #    batch_size=self.conf.batch_size
+    #)
+
+    # Get mean and std array
+    #mean, std = utils.get_mean_std_dataset(tf_dataset)
+    #logging.info(f'Mean: {mean}, Std: {std}')
+    #np.save(
+    #    os.path.join(
+    #        conf.data_dir, f'mean-{conf.experiment_name}.npy'), mean.numpy())
+    #np.save(
+    #    os.path.join(
+    #        conf.data_dir, f'std-{conf.experiment_name}.npy'), std.numpy())
+
 
     logging.info('Done with preprocessing stage')
     return
@@ -145,10 +185,10 @@ def main() -> None:
     schema = omegaconf.OmegaConf.structured(Config)
     conf = omegaconf.OmegaConf.load(args.config_file)
     try:
-        omegaconf.OmegaConf.merge(schema, conf)
+        conf = omegaconf.OmegaConf.merge(schema, conf)
     except BaseException as err:
         sys.exit(f"ERROR: {err}")
-    
+
     # Seed everything
     seed_everything(conf.seed)
 
