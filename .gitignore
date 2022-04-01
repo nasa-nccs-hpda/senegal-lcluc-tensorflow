@@ -1,3 +1,9 @@
+# Project specific ignore
+chm_work/
+geoscitools/
+icesat2/
+senegal/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -85,13 +85,13 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
         label = cp.squeeze(label) if len(label.shape) != 2 else label
         logging.info(f'Label classes from image: {cp.unique(label)}')
 
-        # TODO: Substract values if classes do not start from 0
-        # Not sure how, this involves having to check for min that
-        # sometimes is not 1 and is a negative no-data value
-        # the addition of this value is important
+        # TODO: Temporary fix, only normalize the data
+        image = image / 10000.0
         
         # Modify labels, sometimes we need to merge some training classes
-        label = modify_label_classes(label, conf.modify_labels)
+        # Substract values if classes do not start from 0, this is done first
+        label = modify_label_classes(
+            label, conf.modify_labels, conf.substract_labels)
         logging.info(f'Label classes after modify_labels: {cp.unique(label)}')
 
         # Making labels int type and grabbing some information
