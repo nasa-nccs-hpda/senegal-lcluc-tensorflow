@@ -5,6 +5,7 @@
 import os
 import sys
 import time
+import atexit
 import logging
 import argparse
 import omegaconf
@@ -30,7 +31,9 @@ from tensorflow_caney.utils.data import get_dataset_filenames
 from tensorflow_caney.utils.segmentation_tools import SegmentationDataLoader
 
 from tensorflow_caney.networks.unet import unet_batchnorm as unet
-from tensorflow_caney.networks.loss import get_loss
+from tensorflow_caney.utils.losses import get_loss
+from tensorflow_caney.utils.optimizers import get_optimizer
+from tensorflow_caney.utils.metrics import get_metrics
 
 # ---------------------------------------------------------------------------
 # script train.py
@@ -40,14 +43,14 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
     Run training steps.
 
     Possible additions to this process:
-        - TBD
+        - callbacks from functions
+        - model from functions
     """
     logging.info('Starting training stage')
 
     # set data variables for directory management
     images_dir = os.path.join(conf.data_dir, 'images')
     labels_dir = os.path.join(conf.data_dir, 'labels')
-    # TODO: assert files exist
     
     # Set and create model directory
     model_dir = os.path.join(conf.data_dir, 'model')
@@ -61,7 +64,9 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
     # Get data and label filenames for training
     data_filenames = get_dataset_filenames(images_dir)
     label_filenames = get_dataset_filenames(labels_dir)
-    # TODO: assert both numbers are equal
+    assert len(data_filenames) == len(label_filenames), \
+        f'Number of data and label filenames do not match'
+    
     logging.info(
         f'Data: {len(data_filenames)}, Label: {len(label_filenames)}')
 
@@ -70,10 +75,12 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
         data_filenames, label_filenames, conf
     )
 
+    # Set multi-GPU training strategy
     with gpu_strategy.scope():
         
         # TODO: add unet maps on the configuration file from the model
         #       add get model option?
+        #       add additional model options to work with
         model = unet(
             nclass=conf.n_classes,
             input_size=(
@@ -82,18 +89,11 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
             maps=[64, 128, 256, 512, 1024]
         )
 
-        optimizer = tf.keras.optimizers.Adam(conf.learning_rate)
-       
-        metrics = [
-            "acc",
-            tf.keras.metrics.Recall(),
-            tf.keras.metrics.Precision()
-        ]
-        
+        # Compile the model
         model.compile(
             loss=get_loss(conf.loss),
-            optimizer=optimizer,
-            metrics=metrics
+            optimizer=get_optimizer(conf.optimizer)(conf.learning_rate),
+            metrics=get_metrics(conf.metrics)
         )
         model.summary()
 
@@ -114,6 +114,7 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
             )
         ]
 
+    # Fit the model and start training
     model.fit(
         main_data_loader.train_dataset,
         validation_data=main_data_loader.val_dataset,
@@ -122,6 +123,10 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
         validation_steps=main_data_loader.val_steps,
         callbacks=callbacks
     )
+
+    # Close multiprocessing Pools from the background
+    atexit.register(gpu_strategy._extended._collective_ops._pool.close)
+
     return
 
 
@@ -171,6 +176,7 @@ def main() -> None:
 
     # Call run for preprocessing steps
     run(args, conf)
+    logging.info('Done with training stage')
 
     return
 

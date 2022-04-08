@@ -23,7 +23,8 @@ from tensorflow_caney.config.cnn_config import Config
 from tensorflow_caney.utils.system import seed_everything
 from tensorflow_caney.utils.data import gen_random_tiles, read_dataset_csv
 from tensorflow_caney.utils.data import modify_bands, get_dataset_filenames
-from tensorflow_caney.utils.data import modify_label_classes
+from tensorflow_caney.utils.data import modify_label_classes, get_mean_std_dataset
+from tensorflow_caney.utils.data import normalize
 from tensorflow_caney.utils.segmentation_tools import SegmentationDataLoader
 
 from tensorflow_caney.utils import indices
@@ -40,10 +41,8 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
     Run preprocessing steps.
 
     Possible additions to this process:
-        - interactively lookup of static mean and std values
         - additional flexibility for golden tiles
         - enable indices calculation
-        - enable regex for label conversion
     """
     logging.info('Starting preprocessing stage')
 
@@ -85,8 +84,8 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
         label = cp.squeeze(label) if len(label.shape) != 2 else label
         logging.info(f'Label classes from image: {cp.unique(label)}')
 
-        # TODO: Temporary fix, only normalize the data
-        image = image / 10000.0
+        # Normalize values within [0, 1] range
+        image = normalize(image, conf.normalize)
         
         # Modify labels, sometimes we need to merge some training classes
         # Substract values if classes do not start from 0, this is done first
@@ -119,32 +118,19 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
     logging.info(f'Mean and std values from {len(data_filenames)} files.')
 
     # Temporarily disable standardization and augmentation
-    #conf.standardize = False
+    conf.standardize = False
+    metadata_output_filename = os.path.join(
+        conf.data_dir, f'mean-std-{conf.experiment_name}.csv')
 
     # Set main data loader
-    #main_data_loader = SegmentationDataLoader(
-    #    data_filenames, label_filenames, conf
-    #)
-
-    # Set tensorflow dataset
-    #tf_dataset = self.tf_dataset(
-    #    data_filenames, label_filenames,
-    #    read_func=self.tf_data_loader, repeat=False,
-    #    batch_size=self.conf.batch_size
-    #)
+    main_data_loader = SegmentationDataLoader(
+        data_filenames, label_filenames, conf, False
+    )
 
     # Get mean and std array
-    #mean, std = utils.get_mean_std_dataset(tf_dataset)
-    #logging.info(f'Mean: {mean}, Std: {std}')
-    #np.save(
-    #    os.path.join(
-    #        conf.data_dir, f'mean-{conf.experiment_name}.npy'), mean.numpy())
-    #np.save(
-    #    os.path.join(
-    #        conf.data_dir, f'std-{conf.experiment_name}.npy'), std.numpy())
-
-
-    logging.info('Done with preprocessing stage')
+    mean, std = get_mean_std_dataset(
+        main_data_loader.train_dataset, metadata_output_filename)
+    logging.info(f'Mean: {mean.numpy()}, Std: {std.numpy()}')
     return
 
 
@@ -194,6 +180,7 @@ def main() -> None:
 
     # Call run for preprocessing steps
     run(args, conf)
+    logging.info('Done with preprocessing stage')
 
     return
 
