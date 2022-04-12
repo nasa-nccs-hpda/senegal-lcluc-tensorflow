@@ -73,7 +73,7 @@ metrics:
   - 'sm.metrics.iou_score'
 
 callbacks:
-  - "tf.keras.callbacks.ModelCheckpoint(save_best_only=True, mode='max', monitor='val_categorical_accuracy', filepath='{epoch:02d}-{val_loss:.2f}.hdf5')"
+  - "tf.keras.callbacks.ModelCheckpoint(save_best_only=True, mode='max', monitor='val_categorical_accuracy', filepath='${data_dir}/model/{epoch:02d}-{val_loss:.2f}.hdf5')"
   - "tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=4)"
   - "tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=False)"
   - "tf.keras.callbacks.TerminateOnNaN()"
@@ -87,5 +87,6 @@ inference_treshold: 0.50
 # Prediction location
 model_filename: /adapt/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/projects/land_cover/40-0.26.hdf5
 # inference_regex: '/adapt/nobackup/people/zwwillia/SR_lite/SRlite_cloudMasks/CloudMasks/WV02_20110818_M1BS_103001000CCC9000/WV02_20110818_M1BS_1030010001_CLIPPED.tif'
-inference_regex: '/adapt/nobackup/people/mcarrol2/LCLUC_Senegal/ForKonrad/Tappan02_WV02_20120218_M1BS_103001001077BE00_data.tif'
+#inference_regex: '/adapt/nobackup/people/mcarrol2/LCLUC_Senegal/ForKonrad/Tappan02_WV02_20120218_M1BS_103001001077BE00_data.tif'
+inference_regex: '/adapt/nobackup/people/mcarrol2/LCLUC_Senegal/ForKonrad/*_data.tif'
 inference_save_dir: /adapt/nobackup/projects/ilab/projects/Senegal/senegal-lcluc-data/land_cover/predictions/senegal-lcluc-tests
