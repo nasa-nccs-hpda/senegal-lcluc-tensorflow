@@ -5,6 +5,7 @@
 import os
 import sys
 import time
+import atexit
 import logging
 import argparse
 import omegaconf
@@ -23,12 +24,7 @@ sys.path.append('/adapt/nobackup/people/jacaraba/development/tensorflow-caney')
 
 from tensorflow_caney.config.cnn_config import Config
 from tensorflow_caney.utils.system import seed_everything, set_gpu_strategy
-from tensorflow_caney.utils.system import set_mixed_precision, set_xla
-from tensorflow_caney.utils.data import get_dataset_filenames
-from tensorflow_caney.utils.segmentation_tools import SegmentationDataLoader
-
-from tensorflow_caney.networks.unet import unet_batchnorm as unet
-from tensorflow_caney.networks.loss import get_loss
+from tensorflow_caney.utils.model import load_model
 
 from tensorflow_caney.utils.data import modify_bands
 from tensorflow_caney.utils import indices
@@ -48,29 +44,16 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
     
     # Set and create model directory
     os.makedirs(conf.inference_save_dir, exist_ok=True)
-    
-    # TODO: get last model if no model filename was given
-    # try:
-    #    self.conf.model_filename
-    # except AttributeError:
-    #    models_list = glob.glob(os.path.join(self.model_dir, '*.pt'))
-    #    self.model_filename = max(models_list, key=os.path.getctime)
-    # logging.info(f'Loading {self.model_filename}')
-
-    # Loading the trained model
-    assert os.path.isfile(conf.model_filename), \
-        f'{conf.model_filename} does not exist.'
 
     # Set hardware acceleration options
     gpu_strategy = set_gpu_strategy(conf.gpu_devices)
 
+    # Load model for inference
     with gpu_strategy.scope():
 
-        model = tf.keras.models.load_model(
-            conf.model_filename, custom_objects={}
-            #    # "_iou": self._iou,
-            #    "TverskyLoss": TverskyLoss()
-            #    }
+        model = load_model(
+            model_filename=conf.model_filename,
+            model_dir=os.path.join(conf.data_dir, 'model')
         )
 
     # Gather filenames to predict
@@ -79,6 +62,7 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
         f'No files under {conf.inference_regex}.'
     logging.info(f'{len(data_filenames)} files to predict')
 
+    # TODO: at some point add it with the function
     #if self.conf.standardize:
     #    self.conf.mean = np.load(
     #        os.path.join(
@@ -120,11 +104,13 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
 
             # TODO: CALCULATE INDICES
 
+            # Modify the bands to match inference details
             image = modify_bands(
                 xraster=image, input_bands=conf.input_bands,
                 output_bands=conf.output_bands)
             logging.info(f'Prediction shape after modf: {image.shape}')
 
+            # Call inference function
             prediction = inference.sliding_window(
                 xraster=image.values,
                 model=model,
@@ -135,7 +121,9 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
                 batch_size=conf.pred_batch_size,
                 mean=conf.mean,
                 std=conf.std,
-                n_classes=conf.n_classes
+                n_classes=conf.n_classes,
+                standardization=conf.standardization,
+                normalize=conf.normalize
             )
 
             # Drop image band to allow for a merge of mask
@@ -176,6 +164,9 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
         # This is the case where the prediction was already saved
         else:
             logging.info(f'{output_filename} already predicted.')
+
+    # Close multiprocessing Pools from the background
+    atexit.register(gpu_strategy._extended._collective_ops._pool.close)
 
     return
 

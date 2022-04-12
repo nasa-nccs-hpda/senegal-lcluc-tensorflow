@@ -3,6 +3,7 @@ chm_work/
 geoscitools/
 icesat2/
 senegal/
+*.hdf5
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

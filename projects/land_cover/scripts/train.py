@@ -18,10 +18,6 @@ import xarray as xr
 import rioxarray as rxr
 import tensorflow as tf
 
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
-from tensorflow.keras.callbacks import TensorBoard, CSVLogger
-from tensorflow.keras.callbacks import ReduceLROnPlateau
-
 sys.path.append('/adapt/nobackup/people/jacaraba/development/tensorflow-caney')
 
 from tensorflow_caney.config.cnn_config import Config
@@ -34,6 +30,8 @@ from tensorflow_caney.networks.unet import unet_batchnorm as unet
 from tensorflow_caney.utils.losses import get_loss
 from tensorflow_caney.utils.optimizers import get_optimizer
 from tensorflow_caney.utils.metrics import get_metrics
+from tensorflow_caney.utils.callbacks import get_callbacks
+from tensorflow_caney.utils.model import get_model
 
 # ---------------------------------------------------------------------------
 # script train.py
@@ -43,8 +41,8 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
     Run training steps.
 
     Possible additions to this process:
-        - callbacks from functions
-        - model from functions
+        - standardization
+        - plot out of training metrics
     """
     logging.info('Starting training stage')
 
@@ -77,42 +75,15 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
 
     # Set multi-GPU training strategy
     with gpu_strategy.scope():
-        
-        # TODO: add unet maps on the configuration file from the model
-        #       add get model option?
-        #       add additional model options to work with
-        model = unet(
-            nclass=conf.n_classes,
-            input_size=(
-                conf.tile_size, conf.tile_size, len(conf.output_bands)
-            ),
-            maps=[64, 128, 256, 512, 1024]
-        )
 
-        # Compile the model
+        # Get and compile the model
+        model = get_model(conf.model)
         model.compile(
             loss=get_loss(conf.loss),
             optimizer=get_optimizer(conf.optimizer)(conf.learning_rate),
             metrics=get_metrics(conf.metrics)
         )
         model.summary()
-
-        callbacks = [
-            ModelCheckpoint(
-                filepath=os.path.join(
-                    model_dir, '{epoch:02d}-{val_loss:.2f}.hdf5'),
-                monitor='val_acc',
-                mode='max',
-                save_best_only=True),
-            ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=4),
-            CSVLogger(
-                os.path.join(model_dir, f"{conf.experiment_name}.csv")),
-            TensorBoard(
-                log_dir=os.path.join(model_dir, 'tensorboard_logs')),
-            EarlyStopping(
-                monitor='val_loss', patience=10, restore_best_weights=False
-            )
-        ]
 
     # Fit the model and start training
     model.fit(
@@ -121,7 +92,7 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
         epochs=conf.max_epochs,
         steps_per_epoch=main_data_loader.train_steps,
         validation_steps=main_data_loader.val_steps,
-        callbacks=callbacks
+        callbacks=get_callbacks(conf.callbacks)
     )
 
     # Close multiprocessing Pools from the background

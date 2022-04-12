@@ -24,7 +24,7 @@ from tensorflow_caney.utils.system import seed_everything
 from tensorflow_caney.utils.data import gen_random_tiles, read_dataset_csv
 from tensorflow_caney.utils.data import modify_bands, get_dataset_filenames
 from tensorflow_caney.utils.data import modify_label_classes, get_mean_std_dataset
-from tensorflow_caney.utils.data import normalize
+from tensorflow_caney.utils.data import normalize_image
 from tensorflow_caney.utils.segmentation_tools import SegmentationDataLoader
 
 from tensorflow_caney.utils import indices
@@ -85,7 +85,7 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
         logging.info(f'Label classes from image: {cp.unique(label)}')
 
         # Normalize values within [0, 1] range
-        image = normalize(image, conf.normalize)
+        image = normalize_image(image, conf.normalize)
         
         # Modify labels, sometimes we need to merge some training classes
         # Substract values if classes do not start from 0, this is done first
@@ -118,7 +118,7 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
     logging.info(f'Mean and std values from {len(data_filenames)} files.')
 
     # Temporarily disable standardization and augmentation
-    conf.standardize = False
+    conf.standardization = None
     metadata_output_filename = os.path.join(
         conf.data_dir, f'mean-std-{conf.experiment_name}.csv')
 
