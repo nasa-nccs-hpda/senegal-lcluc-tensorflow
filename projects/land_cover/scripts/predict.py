@@ -109,10 +109,13 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
                 xraster=image, input_bands=conf.input_bands,
                 output_bands=conf.output_bands)
             logging.info(f'Prediction shape after modf: {image.shape}')
+            
+            temporary_tif = image.values
+            temporary_tif[temporary_tif < 0] = 2000
 
             # Call inference function
             prediction = inference.sliding_window(
-                xraster=image.values,
+                xraster=temporary_tif,
                 model=model,
                 window_size=conf.window_size,
                 tile_size=conf.tile_size,
@@ -166,7 +169,7 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
             logging.info(f'{output_filename} already predicted.')
 
     # Close multiprocessing Pools from the background
-    atexit.register(gpu_strategy._extended._collective_ops._pool.close)
+    # atexit.register(gpu_strategy._extended._collective_ops._pool.close)
 
     return
 
