@@ -18,15 +18,27 @@ input_bands:
   - NIR1
   - NIR2
 
+#output_bands:
+#  - CoastalBlue
+#  - Blue
+#  - Green
+#  - Yellow
+#  - Red
+#  - RedEdge
+#  - NIR1
+#  - NIR2
+#  - CS1
+#  - CS2
+#  - DVI
+#  - DWI
+#  - NDVI
+
 output_bands:
-  - CoastalBlue
-  - Blue
-  - Green
-  - Yellow
-  - Red
-  - RedEdge
-  - NIR1
-  - NIR2
+  - CS1
+  - CS2
+  - DVI
+  - DWI
+  - NDVI
 
 substract_labels: True
 normalize: 1.0

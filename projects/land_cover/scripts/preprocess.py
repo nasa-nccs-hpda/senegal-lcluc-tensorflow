@@ -29,6 +29,7 @@ from tensorflow_caney.utils.segmentation_tools import SegmentationDataLoader
 
 from tensorflow_caney.utils import indices
 
+
 CHUNKS = {'band': 'auto', 'x': 'auto', 'y': 'auto'}
 
 __status__ = "Development"
@@ -67,7 +68,10 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
         label = rxr.open_rasterio(label_filename, chunks=CHUNKS).values
         logging.info(f'Image: {image.shape}, Label: {label.shape}')
 
-        # TODO: CALCULATE INDICES HERE
+        # Calculate indices and append to the original raster
+        image = indices.add_indices(
+            xraster=image, input_bands=conf.input_bands,
+            output_bands=conf.output_bands)
 
         # Lower the number of bands if required
         image = modify_bands(
