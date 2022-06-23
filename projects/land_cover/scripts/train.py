@@ -96,7 +96,7 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
     )
 
     # Close multiprocessing Pools from the background
-    atexit.register(gpu_strategy._extended._collective_ops._pool.close)
+    # atexit.register(gpu_strategy._extended._collective_ops._pool.close)
 
     return
 

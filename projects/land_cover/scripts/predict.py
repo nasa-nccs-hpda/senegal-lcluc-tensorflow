@@ -30,6 +30,8 @@ from tensorflow_caney.utils.data import modify_bands
 from tensorflow_caney.utils import indices
 from tensorflow_caney.inference import inference
 
+from tensorflow_caney.utils import indices
+
 # ---------------------------------------------------------------------------
 # script train.py
 # ---------------------------------------------------------------------------
@@ -99,16 +101,19 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
 
             # open filename
             image = rxr.open_rasterio(filename)
-            image = image.transpose("y", "x", "band")
             logging.info(f'Prediction shape: {image.shape}')
 
             # TODO: CALCULATE INDICES
+            # Calculate indices and append to the original raster
+            image = indices.add_indices(xraster=image, input_bands=conf.input_bands, output_bands=conf.output_bands)
 
             # Modify the bands to match inference details
             image = modify_bands(
                 xraster=image, input_bands=conf.input_bands,
                 output_bands=conf.output_bands)
             logging.info(f'Prediction shape after modf: {image.shape}')
+            
+            image = image.transpose("y", "x", "band")
             
             temporary_tif = image.values
             temporary_tif[temporary_tif < 0] = 2000
