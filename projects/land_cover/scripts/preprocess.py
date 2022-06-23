@@ -4,7 +4,6 @@
 # --------------------------------------------------------------------------
 import os
 import sys
-import time
 import logging
 import argparse
 import omegaconf
@@ -12,18 +11,14 @@ from pathlib import Path
 
 import numpy as np
 import cupy as cp
-import pandas as pd
-import xarray as xr
 import rioxarray as rxr
-import tensorflow as tf
-
-sys.path.append('/adapt/nobackup/people/jacaraba/development/tensorflow-caney')
 
 from tensorflow_caney.config.cnn_config import Config
 from tensorflow_caney.utils.system import seed_everything
 from tensorflow_caney.utils.data import gen_random_tiles, read_dataset_csv
 from tensorflow_caney.utils.data import modify_bands, get_dataset_filenames
-from tensorflow_caney.utils.data import modify_label_classes, get_mean_std_dataset
+from tensorflow_caney.utils.data import modify_label_classes
+from tensorflow_caney.utils.data import get_mean_std_dataset
 from tensorflow_caney.utils.data import normalize_image
 from tensorflow_caney.utils.segmentation_tools import SegmentationDataLoader
 
@@ -34,10 +29,13 @@ CHUNKS = {'band': 'auto', 'x': 'auto', 'y': 'auto'}
 
 __status__ = "Development"
 
+
 # ---------------------------------------------------------------------------
 # script preprocess.py
 # ---------------------------------------------------------------------------
-def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None:
+def run(
+            args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig
+        ) -> None:
     """
     Run preprocessing steps.
 
@@ -62,7 +60,7 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
     for data_filename, label_filename, n_tiles in data_df.values:
 
         logging.info(f'Processing {Path(data_filename).stem}')
-    
+
         # Read imagery from disk and process both image and mask
         image = rxr.open_rasterio(data_filename, chunks=CHUNKS).load()
         label = rxr.open_rasterio(label_filename, chunks=CHUNKS).values
@@ -90,7 +88,7 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
 
         # Normalize values within [0, 1] range
         image = normalize_image(image, conf.normalize)
-        
+
         # Modify labels, sometimes we need to merge some training classes
         # Substract values if classes do not start from 0, this is done first
         label = modify_label_classes(
@@ -139,7 +137,7 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
 
 
 def main() -> None:
-    
+
     # Process command-line args.
     desc = 'Use this application to map LCLUC in Senegal using WV data.'
     parser = argparse.ArgumentParser(description=desc)
@@ -187,6 +185,7 @@ def main() -> None:
     logging.info('Done with preprocessing stage')
 
     return
+
 
 # -------------------------------------------------------------------------------
 # main

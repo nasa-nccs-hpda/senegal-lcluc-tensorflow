@@ -18,27 +18,19 @@ input_bands:
   - NIR1
   - NIR2
 
-#output_bands:
-#  - CoastalBlue
-#  - Blue
-#  - Green
-#  - Yellow
-#  - Red
-#  - RedEdge
-#  - NIR1
-#  - NIR2
-#  - CS1
-#  - CS2
-#  - DVI
-#  - DWI
-#  - NDVI
-
 output_bands:
-  - CS1
-  - CS2
-  - DVI
-  - DWI
+  - CoastalBlue
+  - Blue
+  - Green
+  - Yellow
+  - Red
+  - RedEdge
+  - NIR1
+  - NIR2
   - NDVI
+  - CIRE
+  - BAI
+  - CIG
 
 substract_labels: True
 normalize: 1.0
@@ -68,7 +60,7 @@ learning_rate: 0.0001
 max_epochs: 6000
 patience: 10
 
-model: "tensorflow_caney.networks.unet.unet_batchnorm(nclass=3, input_size=(256, 256, 8),maps=[64, 128, 256, 512, 1024])"
+model: "tfc.unet.unet_batchnorm(nclass=3, input_size=(256, 256, 9), maps=[64, 128, 256, 512, 1024])"
 #model: "sm.Unet('resnet34', input_shape=(256, 256, 3), encoder_weights=None, classes=3, activation='softmax')"
 
 loss: 'tf.keras.losses.CategoricalCrossentropy()'
@@ -97,8 +89,8 @@ inference_overlap: 2
 inference_treshold: 0.50
 
 # Prediction location
-model_filename: /adapt/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/projects/land_cover/40-0.26.hdf5
+model_filename: /adapt/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/projects/land_cover/models/03-0.37.hdf5
 # inference_regex: '/adapt/nobackup/people/zwwillia/SR_lite/SRlite_cloudMasks/CloudMasks/WV02_20110818_M1BS_103001000CCC9000/WV02_20110818_M1BS_1030010001_CLIPPED.tif'
-#inference_regex: '/adapt/nobackup/people/mcarrol2/LCLUC_Senegal/ForKonrad/Tappan02_WV02_20120218_M1BS_103001001077BE00_data.tif'
-inference_regex: '/adapt/nobackup/people/mcarrol2/LCLUC_Senegal/ForKonrad/*_data.tif'
+inference_regex: '/adapt/nobackup/people/mcarrol2/LCLUC_Senegal/ForKonrad/Tappan02_WV02_20120218_M1BS_103001001077BE00_data.tif'
+#inference_regex: '/adapt/nobackup/people/mcarrol2/LCLUC_Senegal/ForKonrad/*_data.tif'
 inference_save_dir: /adapt/nobackup/projects/ilab/projects/Senegal/senegal-lcluc-data/land_cover/predictions/senegal-lcluc-tests
