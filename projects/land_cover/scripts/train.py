@@ -1,5 +1,5 @@
 # --------------------------------------------------------------------------
-# Prediction of vhr data. This assumes you provide
+# Training of vhr data. This assumes you provide
 # a configuration file with required parameters and files.
 # --------------------------------------------------------------------------
 import os
@@ -9,16 +9,6 @@ import atexit
 import logging
 import argparse
 import omegaconf
-from pathlib import Path
-
-import numpy as np
-import cupy as cp
-import pandas as pd
-import xarray as xr
-import rioxarray as rxr
-import tensorflow as tf
-
-sys.path.append('/adapt/nobackup/people/jacaraba/development/tensorflow-caney')
 
 from tensorflow_caney.config.cnn_config import Config
 from tensorflow_caney.utils.system import seed_everything, set_gpu_strategy
@@ -26,22 +16,24 @@ from tensorflow_caney.utils.system import set_mixed_precision, set_xla
 from tensorflow_caney.utils.data import get_dataset_filenames
 from tensorflow_caney.utils.segmentation_tools import SegmentationDataLoader
 
-from tensorflow_caney.networks.unet import unet_batchnorm as unet
 from tensorflow_caney.utils.losses import get_loss
 from tensorflow_caney.utils.optimizers import get_optimizer
 from tensorflow_caney.utils.metrics import get_metrics
 from tensorflow_caney.utils.callbacks import get_callbacks
 from tensorflow_caney.utils.model import get_model
 
+
 # ---------------------------------------------------------------------------
 # script train.py
 # ---------------------------------------------------------------------------
-def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None:
+def run(
+            args: argparse.Namespace,
+            conf: omegaconf.dictconfig.DictConfig
+        ) -> None:
     """
     Run training steps.
 
     Possible additions to this process:
-        - standardization
         - plot out of training metrics
     """
     logging.info('Starting training stage')
@@ -49,7 +41,7 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
     # set data variables for directory management
     images_dir = os.path.join(conf.data_dir, 'images')
     labels_dir = os.path.join(conf.data_dir, 'labels')
-    
+
     # Set and create model directory
     model_dir = os.path.join(conf.data_dir, 'model')
     os.makedirs(model_dir, exist_ok=True)
@@ -63,8 +55,8 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
     data_filenames = get_dataset_filenames(images_dir)
     label_filenames = get_dataset_filenames(labels_dir)
     assert len(data_filenames) == len(label_filenames), \
-        f'Number of data and label filenames do not match'
-    
+        'Number of data and label filenames do not match'
+
     logging.info(
         f'Data: {len(data_filenames)}, Label: {len(label_filenames)}')
 
@@ -102,7 +94,7 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
 
 
 def main() -> None:
-    
+
     # Process command-line args.
     desc = 'Use this application to map LCLUC in Senegal using WV data.'
     parser = argparse.ArgumentParser(description=desc)
@@ -141,15 +133,18 @@ def main() -> None:
         conf = omegaconf.OmegaConf.merge(schema, conf)
     except BaseException as err:
         sys.exit(f"ERROR: {err}")
-    
+
     # Seed everything
     seed_everything(conf.seed)
 
     # Call run for preprocessing steps
+    timer = time.time()
     run(args, conf)
-    logging.info('Done with training stage')
+    logging.info(
+        f'Done with training, took {(time.time()-timer)/60.0:.2f} min.')
 
     return
+
 
 # -------------------------------------------------------------------------------
 # main

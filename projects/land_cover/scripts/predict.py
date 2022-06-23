@@ -9,6 +9,7 @@ import atexit
 import logging
 import argparse
 import omegaconf
+import rasterio
 from glob import glob
 from pathlib import Path
 
@@ -19,44 +20,38 @@ import xarray as xr
 import rioxarray as rxr
 import tensorflow as tf
 
-
-sys.path.append('/adapt/nobackup/people/jacaraba/development/tensorflow-caney')
-
 from tensorflow_caney.config.cnn_config import Config
-from tensorflow_caney.utils.system import seed_everything, set_gpu_strategy
+from tensorflow_caney.utils.system import seed_everything
 from tensorflow_caney.utils.model import load_model
 
-from tensorflow_caney.utils.data import modify_bands
+from tensorflow_caney.utils.data import modify_bands, \
+    get_mean_std_metadata
 from tensorflow_caney.utils import indices
 from tensorflow_caney.inference import inference
 
-from tensorflow_caney.utils import indices
 
 # ---------------------------------------------------------------------------
 # script train.py
 # ---------------------------------------------------------------------------
-def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None:
+def run(
+            args: argparse.Namespace,
+            conf: omegaconf.dictconfig.DictConfig
+        ) -> None:
     """
     Run training steps.
-
     Possible additions to this process:
         - TBD
     """
     logging.info('Starting prediction stage')
-    
+
     # Set and create model directory
     os.makedirs(conf.inference_save_dir, exist_ok=True)
 
-    # Set hardware acceleration options
-    gpu_strategy = set_gpu_strategy(conf.gpu_devices)
-
     # Load model for inference
-    with gpu_strategy.scope():
-
-        model = load_model(
-            model_filename=conf.model_filename,
-            model_dir=os.path.join(conf.data_dir, 'model')
-        )
+    model = load_model(
+        model_filename=conf.model_filename,
+        model_dir=os.path.join(conf.data_dir, 'model')
+    )
 
     # Gather filenames to predict
     data_filenames = sorted(glob(conf.inference_regex))
@@ -64,17 +59,18 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
         f'No files under {conf.inference_regex}.'
     logging.info(f'{len(data_filenames)} files to predict')
 
-    # TODO: at some point add it with the function
-    #if self.conf.standardize:
-    #    self.conf.mean = np.load(
-    #        os.path.join(
-    #            self.conf.data_dir,
-    #            f'mean-{self.conf.experiment_name}.npy')).tolist()
-    #    self.conf.std = np.load(
-    #        os.path.join(
-    #            self.conf.data_dir,
-    #            f'std-{self.conf.experiment_name}.npy')).tolist()
-    #logging.info(f'Mean: {self.conf.mean}, Std: {self.conf.std}')
+    # Retrieve mean and std, there should be a more ideal place
+    # TEMPORARY FILE FOR METADATA, TIRED AND NEED TO LEAVE THIS RUNNING
+    # CHANGE TO MODEL_DIR IN THE OTHER SCRIPTS
+    if conf.standardization in ["global", "mixed"]:
+        mean, std = get_mean_std_metadata(
+            os.path.join(
+                conf.model_dir, f'mean-std-{conf.experiment_name}.csv')
+        )
+        logging.info(f'Mean: {mean}, Std: {std}')
+    else:
+        mean = None
+        std = None
 
     # iterate files, create lock file to avoid predicting the same file
     for filename in data_filenames:
@@ -92,47 +88,70 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
 
         # predict only if file does not exist and no lock file
         if not os.path.isfile(output_filename) and \
-            not os.path.isfile(lock_filename):
+                not os.path.isfile(lock_filename):
 
-            logging.info(f'Starting to predict {filename}')
+            try:
 
-            # create lock file
-            open(lock_filename, 'w').close()
+                logging.info(f'Starting to predict {filename}')
 
-            # open filename
-            image = rxr.open_rasterio(filename)
-            logging.info(f'Prediction shape: {image.shape}')
+                # create lock file
+                open(lock_filename, 'w').close()
 
-            # TODO: CALCULATE INDICES
+                # open filename
+                image = rxr.open_rasterio(filename)
+                logging.info(f'Prediction shape: {image.shape}')
+
+            except rasterio.errors.RasterioIOError:
+                logging.info(f'Skipped {filename}, probably corrupted.')
+                continue
+
             # Calculate indices and append to the original raster
-            image = indices.add_indices(xraster=image, input_bands=conf.input_bands, output_bands=conf.output_bands)
+            image = indices.add_indices(
+                xraster=image, input_bands=conf.input_bands,
+                output_bands=conf.output_bands)
 
             # Modify the bands to match inference details
             image = modify_bands(
                 xraster=image, input_bands=conf.input_bands,
                 output_bands=conf.output_bands)
             logging.info(f'Prediction shape after modf: {image.shape}')
-            
-            image = image.transpose("y", "x", "band")
-            
-            temporary_tif = image.values
-            temporary_tif[temporary_tif < 0] = 2000
 
-            # Call inference function
-            prediction = inference.sliding_window(
+            # Transpose the image for channel last format
+            image = image.transpose("y", "x", "band")
+
+            # Remove no-data values to account for edge effects
+            # temporary_tif = image.values
+            temporary_tif = xr.where(image > -100, image, 600)
+
+            prediction = inference.sliding_window_tiler_multiclass(
                 xraster=temporary_tif,
                 model=model,
-                window_size=conf.window_size,
-                tile_size=conf.tile_size,
-                inference_overlap=conf.inference_overlap,
-                inference_treshold=conf.inference_treshold,
-                batch_size=conf.pred_batch_size,
-                mean=conf.mean,
-                std=conf.std,
                 n_classes=conf.n_classes,
+                overlap=0.50,
+                batch_size=conf.pred_batch_size,
                 standardization=conf.standardization,
+                mean=mean,
+                std=std,
                 normalize=conf.normalize
             )
+            # logging.info(f'Prediction unique values {np.unique(prediction)}')
+            # logging.info(f'Done with prediction')
+
+            # Call inference function
+            # prediction = inference.sliding_window(
+            #    xraster=temporary_tif.data,
+            #    model=model,
+            #    window_size=conf.window_size,
+            #    tile_size=conf.tile_size,
+            #    inference_overlap=conf.inference_overlap,
+            #    inference_treshold=conf.inference_treshold,
+            #    batch_size=conf.pred_batch_size,
+            #    mean=conf.mean,
+            #    std=conf.std,
+            #    n_classes=conf.n_classes,
+            #    standardization=conf.standardization,
+            #    normalize=conf.normalize
+            # )
 
             # Drop image band to allow for a merge of mask
             image = image.drop(
@@ -150,6 +169,7 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
                 attrs=image.attrs
             )
             prediction.attrs['long_name'] = (conf.experiment_type)
+            prediction.attrs['model_name'] = (conf.model_filename)
             prediction = prediction.transpose("band", "y", "x")
 
             # Set nodata values on mask
@@ -160,13 +180,19 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
             # Save COG file to disk
             prediction.rio.to_raster(
                 output_filename, BIGTIFF="IF_SAFER", compress='LZW',
-                num_threads='all_cpus')#, driver='COG')
+                num_threads='all_cpus'  # , driver='COG'
+            )
 
             del prediction
 
             # delete lock file
-            os.remove(lock_filename)
+            try:
+                os.remove(lock_filename)
+            except FileNotFoundError:
+                logging.info(f'Lock file not found {lock_filename}')
+                continue
 
+            logging.info(f'Finished processing {output_filename}')
             logging.info(f"{(time.time() - start_time)/60} min")
 
         # This is the case where the prediction was already saved
@@ -180,7 +206,7 @@ def run(args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig) -> None
 
 
 def main() -> None:
-    
+
     # Process command-line args.
     desc = 'Use this application to map LCLUC in Senegal using WV data.'
     parser = argparse.ArgumentParser(description=desc)
@@ -219,7 +245,7 @@ def main() -> None:
         conf = omegaconf.OmegaConf.merge(schema, conf)
     except BaseException as err:
         sys.exit(f"ERROR: {err}")
-    
+
     # Seed everything
     seed_everything(conf.seed)
 
@@ -227,6 +253,7 @@ def main() -> None:
     run(args, conf)
 
     return
+
 
 # -------------------------------------------------------------------------------
 # main

@@ -6,8 +6,6 @@ import argparse
 import logging
 from omegaconf import OmegaConf
 
-sys.path.append('/adapt/nobackup/people/jacaraba/development/tensorflow-caney')
-
 from .preprocess import run as preprocess_run
 # from .train import main as train_main
 # from .predict import main as predict_main
