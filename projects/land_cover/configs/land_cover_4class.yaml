@@ -6,7 +6,7 @@
 experiment_name: landcover-trees
 experiment_type: landcover
 
-data_dir: '/projects/kwessel4/nga-senegal/scripts/att/dataset'
+data_dir: '/projects/kwessel4/nga-senegal-4class/dataset'
 
 seed: 42
 gpu_devices: 0,1,2,3
@@ -32,6 +32,11 @@ output_bands:
   - RedEdge
   - NIR1
   - NIR2
+  #- CS1
+  #- CS2
+  #- DVI
+  #- DWI
+  #- NDVI
   
 substract_labels: True
 normalize: 1.0
@@ -39,14 +44,15 @@ normalize: 1.0
 modify_labels:
   - "x == 0": 8
   - "x == 1": 9
-  - "x == 4": 0
+  - "x == 4": 7
   - "x == 3": 0
   - "x == 2": 0
   - "x == 8": 1
   - "x == 9": 2
+  - "x == 7": 3
 
 expand_dims: True
-tile_size: 256
+tile_size: 512
 include_classes: True
 augment: True
 
@@ -55,14 +61,14 @@ augment: True
 # mixed standardization
 standardization: 'local'
 batch_size: 32
-n_classes: 3
+n_classes: 4
 test_size: 0.20
 learning_rate: 0.0001
 max_epochs: 6000
 patience: 10
 
-model: "tensorflow_caney.networks.unet.unet_batchnorm(nclass=3, input_size=(256, 256, 8),maps=[64, 128, 256, 512, 1024])"
-#model: "sm.Unet('resnet34', input_shape=(256, 256, 3), encoder_weights=None, classes=3, activation='softmax')"
+model: "tensorflow_caney.networks.unet.unet_batchnorm(nclass=4, input_size=(512, 512, 8),maps=[64, 128, 256, 512, 1024])"
+#model: "sm.Unet('resnet34', input_shape=(256, 256, 3), encoder_weights=None, classes=4, activation='softmax')"
 
 loss: 'tf.keras.losses.CategoricalCrossentropy()'
 #loss: sm.losses.CategoricalFocalLoss
@@ -90,6 +96,6 @@ inference_overlap: 2
 inference_treshold: 0.50
 
 # Prediction location
-model_filename: /projects/kwessel4/nga-senegal/scripts/att/dataset/model/73-0.12.hdf5
+model_filename: /projects/kwessel4/nga-senegal-4class/dataset/model/48-0.16.hdf5
 inference_regex: '/home/mle35/nga-senegal/scripts/att/test/*.tif'
-inference_save_dir: /home/mle35/nga-senegal/scripts/att/dataset/predictions/73-0.12/images
+inference_save_dir: /home/mle35/nga-senegal-4class/dataset/predictions/48-0.16/images

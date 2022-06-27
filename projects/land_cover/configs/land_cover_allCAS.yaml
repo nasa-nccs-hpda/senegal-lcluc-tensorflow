@@ -39,14 +39,15 @@ normalize: 1.0
 modify_labels:
   - "x == 0": 8
   - "x == 1": 9
-  - "x == 4": 0
+  - "x == 4": 7
   - "x == 3": 0
   - "x == 2": 0
-  - "x == 8": 1
-  - "x == 9": 2
+  - "x == 8": 0
+  - "x == 9": 1
+  - "x == 7": 0
 
 expand_dims: True
-tile_size: 256
+tile_size: 512
 include_classes: True
 augment: True
 
@@ -55,13 +56,13 @@ augment: True
 # mixed standardization
 standardization: 'local'
 batch_size: 32
-n_classes: 3
+n_classes: 2
 test_size: 0.20
 learning_rate: 0.0001
 max_epochs: 6000
 patience: 10
 
-model: "tensorflow_caney.networks.unet.unet_batchnorm(nclass=3, input_size=(256, 256, 8),maps=[64, 128, 256, 512, 1024])"
+model: "tensorflow_caney.networks.unet.unet_batchnorm(nclass=2, input_size=(512, 512, 8),maps=[64, 128, 256, 512, 1024])"
 #model: "sm.Unet('resnet34', input_shape=(256, 256, 3), encoder_weights=None, classes=3, activation='softmax')"
 
 loss: 'tf.keras.losses.CategoricalCrossentropy()'
@@ -90,6 +91,6 @@ inference_overlap: 2
 inference_treshold: 0.50
 
 # Prediction location
-model_filename: /projects/kwessel4/nga-senegal/scripts/att/dataset/model/73-0.12.hdf5
+model_filename: /projects/kwessel4/nga-senegal-agonly/dataset/model/46-0.03.hdf5
 inference_regex: /projects/kwessel4/nga-senegal/scripts/att/allCAS/*.tif
-inference_save_dir: /home/mle35/nga-senegal/scripts/att/dataset/predictions/73-0.12/images
+inference_save_dir: /home/mle35/nga-senegal/scripts/att/dataset/predictions/46-0.03-allCAS/images

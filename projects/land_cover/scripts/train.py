@@ -88,7 +88,7 @@ def run(
     )
 
     # Close multiprocessing Pools from the background
-    atexit.register(gpu_strategy._extended._collective_ops._pool.close)
+    # atexit.register(gpu_strategy._extended._collective_ops._pool.close)
 
     return
 

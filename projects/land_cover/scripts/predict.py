@@ -39,7 +39,6 @@ def run(
         ) -> None:
     """
     Run training steps.
-
     Possible additions to this process:
         - TBD
     """
