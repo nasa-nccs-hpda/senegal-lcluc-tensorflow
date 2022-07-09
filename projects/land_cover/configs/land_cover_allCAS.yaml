@@ -86,11 +86,11 @@ callbacks:
 
 # window_size: 8192
 window_size: 10000
-pred_batch_size: 64
+pred_batch_size: 32
 inference_overlap: 2
 inference_treshold: 0.50
 
 # Prediction location
-model_filename: /projects/kwessel4/nga-senegal-agonly/dataset/model/46-0.03.hdf5
+model_filename: /home/mle35/nga-senegal-agonly/dataset/46-0.03.hdf5
 inference_regex: /projects/kwessel4/nga-senegal/scripts/att/allCAS/*.tif
-inference_save_dir: /home/mle35/nga-senegal/scripts/att/dataset/predictions/46-0.03-allCAS/images
+inference_save_dir: /home/mle35/nga-senegal/scripts/att/dataset/predictions/46-0.03-all/images

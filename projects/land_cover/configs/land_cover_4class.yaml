@@ -91,11 +91,11 @@ callbacks:
 
 # window_size: 8192
 window_size: 10000
-pred_batch_size: 64
+pred_batch_size: 4
 inference_overlap: 2
 inference_treshold: 0.50
 
 # Prediction location
-model_filename: /projects/kwessel4/nga-senegal-4class/dataset/model/48-0.16.hdf5
-inference_regex: '/home/mle35/nga-senegal/scripts/att/test/*.tif'
-inference_save_dir: /home/mle35/nga-senegal-4class/dataset/predictions/48-0.16/images
+model_filename: /projects/kwessel4/nga-senegal-4class/dataset/model/37-0.20.hdf5
+inference_regex: /projects/kwessel4/nga-senegal/scripts/att/allCAS/*.tif
+inference_save_dir: /home/mle35/nga-senegal-4class/dataset/predictions/37-0.20-all/images
