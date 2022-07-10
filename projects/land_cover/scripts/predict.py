@@ -61,7 +61,7 @@ def run(
     if conf.standardization in ["global", "mixed"]:
         mean, std = get_mean_std_metadata(
             os.path.join(
-                conf.model_dir, f'mean-std-{conf.experiment_name}.csv')
+                conf.data_dir, f'mean-std-{conf.experiment_name}.csv')
         )
         logging.info(f'Mean: {mean}, Std: {std}')
     else:
