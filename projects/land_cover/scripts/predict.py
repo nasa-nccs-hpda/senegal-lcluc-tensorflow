@@ -5,7 +5,6 @@
 import os
 import sys
 import time
-import atexit
 import logging
 import argparse
 import omegaconf
@@ -14,11 +13,8 @@ from glob import glob
 from pathlib import Path
 
 import numpy as np
-import cupy as cp
-import pandas as pd
 import xarray as xr
 import rioxarray as rxr
-import tensorflow as tf
 
 from tensorflow_caney.config.cnn_config import Config
 from tensorflow_caney.utils.system import seed_everything
@@ -123,6 +119,9 @@ def run(
             # temporary_tif = image.values
             temporary_tif = xr.where(image > -100, image, 600)
 
+            # Rescale the image
+            # temporary_tif = temporary_tif
+
             prediction = inference.sliding_window_tiler_multiclass(
                 xraster=temporary_tif,
                 model=model,
@@ -132,7 +131,8 @@ def run(
                 standardization=conf.standardization,
                 mean=mean,
                 std=std,
-                normalize=conf.normalize
+                normalize=conf.normalize,
+                rescale=conf.rescale
             )
             # logging.info(f'Prediction unique values {np.unique(prediction)}')
             # logging.info(f'Done with prediction')
@@ -198,10 +198,6 @@ def run(
         # This is the case where the prediction was already saved
         else:
             logging.info(f'{output_filename} already predicted.')
-
-    # Close multiprocessing Pools from the background
-    # atexit.register(gpu_strategy._extended._collective_ops._pool.close)
-
     return
 
 

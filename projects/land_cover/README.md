@@ -1,5 +1,9 @@
 # Land Cover Experiment
 
+## Metadata
+
+Labels: /adapt/nobackup/projects/3sl/labels/landcover/tappan
+
 ## Container Access
 
 ```bash

@@ -9,7 +9,9 @@ import atexit
 import logging
 import argparse
 import omegaconf
+import tensorflow as tf
 
+from packaging.version import parse as parse_version
 from tensorflow_caney.config.cnn_config import Config
 from tensorflow_caney.utils.system import seed_everything, set_gpu_strategy
 from tensorflow_caney.utils.system import set_mixed_precision, set_xla
@@ -88,7 +90,8 @@ def run(
     )
 
     # Close multiprocessing Pools from the background
-    # atexit.register(gpu_strategy._extended._collective_ops._pool.close)
+    if parse_version(tf.__version__) > parse_version('2.4'):
+        atexit.register(gpu_strategy._extended._collective_ops._pool.close)
 
     return
 
