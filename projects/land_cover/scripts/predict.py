@@ -49,12 +49,6 @@ def run(
         model_dir=os.path.join(conf.data_dir, 'model')
     )
 
-    # Gather filenames to predict
-    data_filenames = sorted(glob(conf.inference_regex))
-    assert len(data_filenames) > 0, \
-        f'No files under {conf.inference_regex}.'
-    logging.info(f'{len(data_filenames)} files to predict')
-
     # Retrieve mean and std, there should be a more ideal place
     # TEMPORARY FILE FOR METADATA, TIRED AND NEED TO LEAVE THIS RUNNING
     # CHANGE TO MODEL_DIR IN THE OTHER SCRIPTS
@@ -68,16 +62,42 @@ def run(
         mean = None
         std = None
 
+    # Gather filenames to predict
+    data_filenames = []
+    if len(conf.inference_regex_list) > 0:
+        for regex in conf.inference_regex_list:
+            data_filenames.extend(glob(regex))
+    else:
+        data_filenames = glob(conf.inference_regex)
+
+    assert len(data_filenames) > 0, \
+        f'No files under {conf.inference_regex} or {conf.inference_regex_list}'
+    logging.info(f'{len(data_filenames)} files to predict')
+
     # iterate files, create lock file to avoid predicting the same file
     for filename in data_filenames:
 
         start_time = time.time()
 
-        # output filename to save prediction on
-        output_filename = os.path.join(
-            conf.inference_save_dir,
-            f'{Path(filename).stem}.{conf.experiment_type}.tif'
-        )
+        if len(conf.inference_regex_list) > 0:
+
+            # get location based output directory
+            output_directory = os.path.join(
+                conf.inference_save_dir,
+                filename.split('/')[-3])
+
+            # output filename to save prediction on
+            output_filename = os.path.join(
+                output_directory,
+                f'{Path(filename).stem}.{conf.experiment_type}.tif')
+
+        else:
+
+            # output filename to save prediction on
+            output_filename = os.path.join(
+                conf.inference_save_dir,
+                f'{Path(filename).stem}.{conf.experiment_type}.tif'
+            )
 
         # lock file for multi-node, multi-processing
         lock_filename = f'{output_filename}.lock'
@@ -126,7 +146,7 @@ def run(
                 xraster=temporary_tif,
                 model=model,
                 n_classes=conf.n_classes,
-                overlap=0.50,
+                overlap=conf.inference_overlap,
                 batch_size=conf.pred_batch_size,
                 standardization=conf.standardization,
                 mean=mean,
@@ -134,24 +154,6 @@ def run(
                 normalize=conf.normalize,
                 rescale=conf.rescale
             )
-            # logging.info(f'Prediction unique values {np.unique(prediction)}')
-            # logging.info(f'Done with prediction')
-
-            # Call inference function
-            # prediction = inference.sliding_window(
-            #    xraster=temporary_tif.data,
-            #    model=model,
-            #    window_size=conf.window_size,
-            #    tile_size=conf.tile_size,
-            #    inference_overlap=conf.inference_overlap,
-            #    inference_treshold=conf.inference_treshold,
-            #    batch_size=conf.pred_batch_size,
-            #    mean=conf.mean,
-            #    std=conf.std,
-            #    n_classes=conf.n_classes,
-            #    standardization=conf.standardization,
-            #    normalize=conf.normalize
-            # )
 
             # Drop image band to allow for a merge of mask
             image = image.drop(
@@ -175,14 +177,21 @@ def run(
             # Set nodata values on mask
             nodata = prediction.rio.nodata
             prediction = prediction.where(image != nodata)
-            prediction.rio.write_nodata(nodata, encoded=True, inplace=True)
+            prediction.rio.write_nodata(
+                conf.prediction_nodata, encoded=True, inplace=True)
+
+            # TODO: ADD CLOUDMASKING STEP HERE
+            # REMOVE CLOUDS USING THE CURRENT MASK
 
             # Save COG file to disk
             prediction.rio.to_raster(
-                output_filename, BIGTIFF="IF_SAFER", compress='LZW',
-                num_threads='all_cpus'  # , driver='COG'
+                output_filename,
+                BIGTIFF="IF_SAFER",
+                compress=conf.prediction_compress,
+                # num_threads='all_cpus',
+                driver=conf.prediction_driver,
+                dtype=conf.prediction_dtype
             )
-
             del prediction
 
             # delete lock file

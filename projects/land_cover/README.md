@@ -3,6 +3,7 @@
 ## Metadata
 
 Labels: /adapt/nobackup/projects/3sl/labels/landcover/tappan
+SRLite Processed: /adapt/nobackup/projects/ilab/data/srlite/products/srlite-0.9.10-07042022-mode-warp/07052022/Senegal
 
 ## Container Access
 
