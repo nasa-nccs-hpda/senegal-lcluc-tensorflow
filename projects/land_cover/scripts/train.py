@@ -9,7 +9,9 @@ import atexit
 import logging
 import argparse
 import omegaconf
+import tensorflow as tf
 
+from packaging.version import parse as parse_version
 from tensorflow_caney.config.cnn_config import Config
 from tensorflow_caney.utils.system import seed_everything, set_gpu_strategy
 from tensorflow_caney.utils.system import set_mixed_precision, set_xla
@@ -20,7 +22,7 @@ from tensorflow_caney.utils.losses import get_loss
 from tensorflow_caney.utils.optimizers import get_optimizer
 from tensorflow_caney.utils.metrics import get_metrics
 from tensorflow_caney.utils.callbacks import get_callbacks
-from tensorflow_caney.utils.model import get_model
+from tensorflow_caney.utils.model import get_model, load_model
 
 
 # ---------------------------------------------------------------------------
@@ -68,14 +70,57 @@ def run(
     # Set multi-GPU training strategy
     with gpu_strategy.scope():
 
-        # Get and compile the model
-        model = get_model(conf.model)
-        model.compile(
-            loss=get_loss(conf.loss),
-            optimizer=get_optimizer(conf.optimizer)(conf.learning_rate),
-            metrics=get_metrics(conf.metrics)
-        )
-        model.summary()
+        # transfer_learning = 'fine-tuning'
+        if conf.transfer_learning == 'feature-extraction':
+
+            # get full model for training
+            model = get_model(conf.model)
+            model.trainable = False
+            pretrained = load_model(
+                model_filename=conf.transfer_learning_weights,
+                model_dir=os.path.join(conf.data_dir, 'model')
+            )
+            model.set_weights(pretrained.get_weights())
+            logging.info(f"Load weights from {conf.transfer_learning_weights}")
+
+            model.trainable = True
+            model.compile(
+                loss=get_loss(conf.loss),
+                optimizer=get_optimizer(conf.optimizer)(conf.learning_rate),
+                metrics=get_metrics(conf.metrics)
+            )
+        elif conf.transfer_learning == 'fine-tuning':
+
+            # get full model for training
+            model = get_model(conf.model)
+            model.trainable = False
+            pretrained = load_model(
+                model_filename=conf.transfer_learning_weights,
+                model_dir=os.path.join(conf.data_dir, 'model')
+            )
+            model.set_weights(pretrained.get_weights())
+            logging.info(f"Load weights from {conf.transfer_learning_weights}")
+
+            # Freeze all the layers before the `fine_tune_at` layer
+            for layer in model.layers[:conf.transfer_learning_fine_tune_at]:
+                layer.trainable = False
+
+            model.compile(
+                loss=get_loss(conf.loss),
+                optimizer=get_optimizer(conf.optimizer)(conf.learning_rate/10),
+                metrics=get_metrics(conf.metrics)
+            )
+
+        else:
+            # Get and compile the model
+            model = get_model(conf.model)
+            model.compile(
+                loss=get_loss(conf.loss),
+                optimizer=get_optimizer(conf.optimizer)(conf.learning_rate),
+                metrics=get_metrics(conf.metrics)
+            )
+
+    model.summary()
 
     # Fit the model and start training
     model.fit(
@@ -88,7 +133,8 @@ def run(
     )
 
     # Close multiprocessing Pools from the background
-    # atexit.register(gpu_strategy._extended._collective_ops._pool.close)
+    if parse_version(tf.__version__) > parse_version('2.4'):
+        atexit.register(gpu_strategy._extended._collective_ops._pool.close)
 
     return
 

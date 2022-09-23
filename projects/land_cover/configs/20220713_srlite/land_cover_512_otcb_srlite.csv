@@ -1,0 +1,3 @@
+data,label,ntiles
+/adapt/nobackup/projects/3sl/data/SRLiteTesting/TappanSRLite/Tappan06_WV02_20131209_M1BS_103001002A192000_data.tif,/adapt/nobackup/projects/3sl/data/SRLiteTesting/labels/Tappan06_WV02_20131206_M1BS_10300100291F4300_mask_segs_reclassified_short.tif,2000
+/adapt/nobackup/projects/3sl/data/SRLiteTesting/TappanSRLite/Tappan06_WV02_20120229_M1BS_1030010011AAC100_data.tif,/adapt/nobackup/projects/3sl/data/SRLiteTesting/labels/Tappan06_WV02_20131206_M1BS_10300100291F4300_mask_segs_reclassified.tif,2000

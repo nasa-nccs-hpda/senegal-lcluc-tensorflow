@@ -7,6 +7,7 @@ import sys
 import logging
 import argparse
 import omegaconf
+from glob import glob
 from pathlib import Path
 
 import numpy as np
@@ -15,11 +16,12 @@ import rioxarray as rxr
 
 from tensorflow_caney.config.cnn_config import Config
 from tensorflow_caney.utils.system import seed_everything
-from tensorflow_caney.utils.data import gen_random_tiles, read_dataset_csv
+from tensorflow_caney.utils.data import gen_random_tiles, \
+    gen_random_tiles_from_json, read_dataset_csv
 from tensorflow_caney.utils.data import modify_bands, get_dataset_filenames
 from tensorflow_caney.utils.data import modify_label_classes
 from tensorflow_caney.utils.data import get_mean_std_dataset
-from tensorflow_caney.utils.data import normalize_image
+from tensorflow_caney.utils.data import normalize_image, rescale_image
 from tensorflow_caney.utils.segmentation_tools import SegmentationDataLoader
 
 from tensorflow_caney.utils import indices
@@ -57,7 +59,8 @@ def run(
     os.makedirs(labels_dir, exist_ok=True)
 
     # iterate over each file and generate dataset
-    for data_filename, label_filename, n_tiles in data_df.values:
+    for index_id, (data_filename, label_filename, n_tiles) \
+            in enumerate(data_df.values):
 
         logging.info(f'Processing {Path(data_filename).stem}')
 
@@ -89,6 +92,9 @@ def run(
         # Normalize values within [0, 1] range
         image = normalize_image(image, conf.normalize)
 
+        # Rescale values within [0, 1] range
+        image = rescale_image(image, conf.rescale)
+
         # Modify labels, sometimes we need to merge some training classes
         # Substract values if classes do not start from 0, this is done first
         label = modify_label_classes(
@@ -105,13 +111,16 @@ def run(
             label=label,
             expand_dims=conf.expand_dims,
             tile_size=conf.tile_size,
+            index_id=index_id,
             num_classes=conf.n_classes,
             max_patches=n_tiles,
             include=conf.include_classes,
             augment=conf.augment,
             output_filename=data_filename,
             out_image_dir=images_dir,
-            out_label_dir=labels_dir
+            out_label_dir=labels_dir,
+            json_tiles_dir=conf.json_tiles_dir,
+            dataset_from_json=conf.dataset_from_json
         )
 
     # Calculate mean and std values for training
@@ -122,7 +131,8 @@ def run(
     # Temporarily disable standardization and augmentation
     conf.standardization = None
     metadata_output_filename = os.path.join(
-        conf.data_dir, f'mean-std-{conf.experiment_name}.csv')
+        conf.model_dir, f'mean-std-{conf.experiment_name}.csv')
+    os.makedirs(conf.model_dir, exist_ok=True)
 
     # Set main data loader
     main_data_loader = SegmentationDataLoader(
@@ -133,6 +143,7 @@ def run(
     mean, std = get_mean_std_dataset(
         main_data_loader.train_dataset, metadata_output_filename)
     logging.info(f'Mean: {mean.numpy()}, Std: {std.numpy()}')
+
     return
 
 

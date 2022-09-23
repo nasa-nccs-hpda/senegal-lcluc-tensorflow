@@ -5,7 +5,6 @@
 import os
 import sys
 import time
-import atexit
 import logging
 import argparse
 import omegaconf
@@ -14,11 +13,8 @@ from glob import glob
 from pathlib import Path
 
 import numpy as np
-import cupy as cp
-import pandas as pd
 import xarray as xr
 import rioxarray as rxr
-import tensorflow as tf
 
 from tensorflow_caney.config.cnn_config import Config
 from tensorflow_caney.utils.system import seed_everything
@@ -44,20 +40,11 @@ def run(
     """
     logging.info('Starting prediction stage')
 
-    # Set and create model directory
-    os.makedirs(conf.inference_save_dir, exist_ok=True)
-
     # Load model for inference
     model = load_model(
         model_filename=conf.model_filename,
         model_dir=os.path.join(conf.data_dir, 'model')
     )
-
-    # Gather filenames to predict
-    data_filenames = sorted(glob(conf.inference_regex))
-    assert len(data_filenames) > 0, \
-        f'No files under {conf.inference_regex}.'
-    logging.info(f'{len(data_filenames)} files to predict')
 
     # Retrieve mean and std, there should be a more ideal place
     # TEMPORARY FILE FOR METADATA, TIRED AND NEED TO LEAVE THIS RUNNING
@@ -72,16 +59,48 @@ def run(
         mean = None
         std = None
 
+    # Gather filenames to predict
+    data_filenames = []
+    if len(conf.inference_regex_list) > 0:
+        for regex in conf.inference_regex_list:
+            data_filenames.extend(glob(regex))
+    else:
+        data_filenames = glob(conf.inference_regex)
+
+    assert len(data_filenames) > 0, \
+        f'No files under {conf.inference_regex} or {conf.inference_regex_list}'
+    logging.info(f'{len(data_filenames)} files to predict')
+
     # iterate files, create lock file to avoid predicting the same file
     for filename in data_filenames:
 
         start_time = time.time()
 
-        # output filename to save prediction on
-        output_filename = os.path.join(
-            conf.inference_save_dir,
-            f'{Path(filename).stem}.{conf.experiment_type}.tif'
-        )
+        if len(conf.inference_regex_list) > 0:
+
+            # get location based output directory
+            output_directory = os.path.join(
+                conf.inference_save_dir,
+                filename.split('/')[-3])
+
+            # output filename to save prediction on
+            output_filename = os.path.join(
+                output_directory,
+                f'{Path(filename).stem}.{conf.experiment_type}.tif')
+
+            # Set and create model directory
+            os.makedirs(output_directory, exist_ok=True)
+
+        else:
+
+            # output filename to save prediction on
+            output_filename = os.path.join(
+                conf.inference_save_dir,
+                f'{Path(filename).stem}.{conf.experiment_type}.tif'
+            )
+
+            # Set and create model directory
+            os.makedirs(conf.inference_save_dir, exist_ok=True)
 
         # lock file for multi-node, multi-processing
         lock_filename = f'{output_filename}.lock'
@@ -123,35 +142,21 @@ def run(
             # temporary_tif = image.values
             temporary_tif = xr.where(image > -100, image, 600)
 
+            # Rescale the image
+            # temporary_tif = temporary_tif
+
             prediction = inference.sliding_window_tiler_multiclass(
                 xraster=temporary_tif,
                 model=model,
                 n_classes=conf.n_classes,
-                overlap=0.50,
+                overlap=conf.inference_overlap,
                 batch_size=conf.pred_batch_size,
                 standardization=conf.standardization,
                 mean=mean,
                 std=std,
-                normalize=conf.normalize
+                normalize=conf.normalize,
+                rescale=conf.rescale
             )
-            # logging.info(f'Prediction unique values {np.unique(prediction)}')
-            # logging.info(f'Done with prediction')
-
-            # Call inference function
-            # prediction = inference.sliding_window(
-            #    xraster=temporary_tif.data,
-            #    model=model,
-            #    window_size=conf.window_size,
-            #    tile_size=conf.tile_size,
-            #    inference_overlap=conf.inference_overlap,
-            #    inference_treshold=conf.inference_treshold,
-            #    batch_size=conf.pred_batch_size,
-            #    mean=conf.mean,
-            #    std=conf.std,
-            #    n_classes=conf.n_classes,
-            #    standardization=conf.standardization,
-            #    normalize=conf.normalize
-            # )
 
             # Drop image band to allow for a merge of mask
             image = image.drop(
@@ -168,6 +173,10 @@ def run(
                 dims=image.dims,
                 attrs=image.attrs
             )
+
+            # TRYING TO IMPROVE RENDERING
+            # prediction = prediction + 1
+
             prediction.attrs['long_name'] = (conf.experiment_type)
             prediction.attrs['model_name'] = (conf.model_filename)
             prediction = prediction.transpose("band", "y", "x")
@@ -175,14 +184,21 @@ def run(
             # Set nodata values on mask
             nodata = prediction.rio.nodata
             prediction = prediction.where(image != nodata)
-            prediction.rio.write_nodata(nodata, encoded=True, inplace=True)
+            prediction.rio.write_nodata(
+                conf.prediction_nodata, encoded=True, inplace=True)
+
+            # TODO: ADD CLOUDMASKING STEP HERE
+            # REMOVE CLOUDS USING THE CURRENT MASK
 
             # Save COG file to disk
             prediction.rio.to_raster(
-                output_filename, BIGTIFF="IF_SAFER", compress='LZW',
-                num_threads='all_cpus'  # , driver='COG'
+                output_filename,
+                BIGTIFF="IF_SAFER",
+                compress=conf.prediction_compress,
+                # num_threads='all_cpus',
+                driver=conf.prediction_driver,
+                dtype=conf.prediction_dtype
             )
-
             del prediction
 
             # delete lock file
@@ -198,10 +214,6 @@ def run(
         # This is the case where the prediction was already saved
         else:
             logging.info(f'{output_filename} already predicted.')
-
-    # Close multiprocessing Pools from the background
-    # atexit.register(gpu_strategy._extended._collective_ops._pool.close)
-
     return
 
 
