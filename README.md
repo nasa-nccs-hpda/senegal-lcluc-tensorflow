@@ -1,5 +1,7 @@
 # senegal-lcluc-tensorflow
 
+![Code style: PEP8](https://github.com/nasa-cisto-ai/senegal-lcluc-tensorflow/actions/workflows/lint.yml/badge.svg)
+
 Senegal LCLUC TensorFlow
 
 ## Downloading the Container
