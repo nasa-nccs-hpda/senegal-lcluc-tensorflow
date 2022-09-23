@@ -1,0 +1,33 @@
+name: CI Regression
+
+on: [push, pull_request]
+
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: docker://nasanccs/tensorflow-caney:latest
+    strategy:
+      max-parallel: 4
+      matrix:
+        # 3.6 will reach EoL in December 2021
+        # https://devguide.python.org/#status-of-python-branches
+        python-version: [ "3.8", "3.9", "3.10" ]
+    steps:
+      - uses: actions/checkout@v2
+      #- name: Setup python
+      #  uses: actions/setup-python@v2
+      #  with:
+      #    python-version: ${{ matrix.python-version }}
+      #    architecture: x64
+      - name: Install test dependencies
+        run: |
+          pip install coveralls
+      - name: Run tests
+        run: coverage run -m pytest -v
+      - name: Submit coveralls
+        if: github.event_name != 'pull_request'
+        run: coveralls --service=github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
