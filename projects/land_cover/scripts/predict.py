@@ -40,9 +40,6 @@ def run(
     """
     logging.info('Starting prediction stage')
 
-    # Set and create model directory
-    os.makedirs(conf.inference_save_dir, exist_ok=True)
-
     # Load model for inference
     model = load_model(
         model_filename=conf.model_filename,
@@ -91,6 +88,9 @@ def run(
                 output_directory,
                 f'{Path(filename).stem}.{conf.experiment_type}.tif')
 
+            # Set and create model directory
+            os.makedirs(output_directory, exist_ok=True)
+
         else:
 
             # output filename to save prediction on
@@ -98,6 +98,9 @@ def run(
                 conf.inference_save_dir,
                 f'{Path(filename).stem}.{conf.experiment_type}.tif'
             )
+
+            # Set and create model directory
+            os.makedirs(conf.inference_save_dir, exist_ok=True)
 
         # lock file for multi-node, multi-processing
         lock_filename = f'{output_filename}.lock'
@@ -170,6 +173,10 @@ def run(
                 dims=image.dims,
                 attrs=image.attrs
             )
+
+            # TRYING TO IMPROVE RENDERING
+            # prediction = prediction + 1
+
             prediction.attrs['long_name'] = (conf.experiment_type)
             prediction.attrs['model_name'] = (conf.model_filename)
             prediction = prediction.transpose("band", "y", "x")
