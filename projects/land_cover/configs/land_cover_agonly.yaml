@@ -39,7 +39,7 @@ output_bands:
   #- NDVI
   
 substract_labels: True
-normalize: 1.0
+normalize: 10000.0
 
 modify_labels:
   - "x == 0": 8
@@ -59,15 +59,15 @@ augment: True
 # standardization functions: local, global, mixed
 # global standardization
 # mixed standardization
-standardization: 'global'
+standardization: 'local'
 batch_size: 32
-n_classes: 2
+n_classes: 1
 test_size: 0.20
 learning_rate: 0.0001
 max_epochs: 6000
 patience: 10
 
-model: "tfc.networks.unet.unet_batchnorm(nclass=2, input_size=(512, 512, 8),maps=[64, 128, 256, 512, 1024])"
+model: "tfc.networks.unet.unet_batchnorm(nclass=1, input_size=(512, 512, 8),maps=[64, 128, 256, 512, 1024])"
 #model: "sm.Unet('resnet34', input_shape=(256, 256, 3), encoder_weights=None, classes=4, activation='softmax')"
 
 loss: 'tf.keras.losses.BinaryCrossentropy()'
@@ -93,11 +93,11 @@ callbacks:
 
 # window_size: 8192
 window_size: 10000
-pred_batch_size: 4
+pred_batch_size: 32
 inference_overlap: 2
 inference_treshold: 0.50
 
 # Prediction location
-model_filename: /projects/kwessel4/nga-senegal-agonly/dataset/model/72-0.01.hdf5
+model_filename: /projects/kwessel4/nga-senegal-agonly/dataset/model/78-0.05.hdf5
 inference_regex: /projects/kwessel4/nga-senegal/scripts/att/allCAS/*.tif
-inference_save_dir: /home/mle35/nga-senegal-agonly/dataset/predictions/72-0.01-all/images
+inference_save_dir: /home/mle35/nga-senegal-agonly/dataset/predictions/78-0.05-all/images
