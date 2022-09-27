@@ -7,6 +7,7 @@ experiment_name: landcover-trees
 experiment_type: landcover
 
 data_dir: '/projects/kwessel4/nga-senegal-4class/dataset'
+model_dir: '/projects/kwessel4/nga-senegal-4class/dataset/model/'
 
 seed: 42
 gpu_devices: 0,1,2,3
@@ -40,6 +41,7 @@ output_bands:
   
 substract_labels: True
 normalize: 10000.0
+rescale: None
 
 modify_labels:
   - "x == 0": 8
@@ -92,13 +94,13 @@ callbacks:
 # window_size: 8192
 window_size: 10000
 pred_batch_size: 16
-inference_overlap: 2
+inference_overlap: 0.50
 inference_treshold: 0.50
 
 # Prediction location
 # model_filename: /projects/kwessel4/nga-senegal-4class/dataset/model/90-0.11.hdf5 ## CAS+ETZ
-model_filename: /projects/kwessel4/nga-senegal-4class/dataset/model/99-0.16.hdf5 ## ETZ
+model_filename: /projects/kwessel4/nga-senegal-4class/dataset/model/79-0.16.hdf5 ## ETZ
 # model_filename: /home/mle35/nga-senegal-4class/dataset/model/48-0.16.hdf5
 # inference_regex: /projects/kwessel4/nga-senegal/scripts/att/allCAS/*.tif
 inference_regex: /projects/kwessel4/ETZ_data/*.tif
-inference_save_dir: /home/mle35/nga-senegal-4class/dataset/predictions/99-0.16-4class-5TS-local-norm10k-ETZ/images
+inference_save_dir: /home/mle35/nga-senegal-4class/dataset/predictions/79-0.16-4class-20TS-local-norm10k-ETZ/images
