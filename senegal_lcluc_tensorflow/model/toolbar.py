@@ -562,7 +562,25 @@ def gen_map(widget_dialog):
     # Client - initial client to localize zoom
     color_list = [mcolors.rgb2hex(cmap[i]) for i in range(len(cmap))]
     data_client = TileClient(data_dialog.selected)
-    label_client = TileClient(label_dialog.selected)
+    
+    # conversion to 16bit
+    label_raster = rxr.open_rasterio(label_dialog.selected).astype(np.int16)
+    label_raster = label_raster.rio.write_nodata(-10001, encoded=True, inplace=True)
+    label_filename = Path(label_dialog.selected)
+    label_output_filename = os.path.join(
+        label_filename.parent.absolute(),
+        f'{label_filename.stem}-16.tif'
+    )
+    label_raster.rio.to_raster(
+        label_output_filename,
+        BIGTIFF="IF_SAFER",
+        compress='LZW',
+        driver='GTiff',
+        dtype='int16'
+    )
+
+    #label_client = TileClient(label_dialog.selected)
+    label_client = TileClient(label_output_filename)
 
     # dataframe to match data_client crs
     raster_prediction = raster_prediction.to_crs(4326)#(data_client.default_projection).split(':')[-1])
@@ -572,6 +590,7 @@ def gen_map(widget_dialog):
     # Create ipyleaflet TileLayer from that server
     data_layer = get_leaflet_tile_layer(
         data_client, show=False, band=data_bands, name="data")
+
     label_layer = get_leaflet_tile_layer(
         label_client, show=False, cmap=color_list, name="label")
 
@@ -673,11 +692,15 @@ def gen_map(widget_dialog):
 
 def file_chooser_widget(data_dir=None, mask_dir=None):
     
-    if data_dir is None:
+    hostname = socket.gethostname()
+    
+    if socket.gethostname()[:3] == 'gpu':
         data_dir = '/explore/nobackup/projects/3sl/data/Tappan'
-    if mask_dir is None:
         mask_dir = '/explore/nobackup/projects/ilab/projects/' + \
             'Senegal/3sl/products/land_cover/dev/trees.v2/Tappan'
+    else:
+        data_dir = '/home/jovyan/efs/projects/3sl/data/Tappan'
+        mask_dir = '/home/jovyan/efs/projects/3sl/products/otcb.v1/Tappan'
 
     data_dir = os.path.abspath(data_dir)
     mask_dir = os.path.abspath(mask_dir)
@@ -694,7 +717,7 @@ def file_chooser_widget(data_dir=None, mask_dir=None):
     )
     mask_dialog = FileChooser(
         mask_dir,
-        filename='Tappan01_WV02_20110430_M1BS_103001000A27E100_data.trees.tif',
+        filename='Tappan01_WV02_20110430_M1BS_103001000A27E100_data.otcb.tif',
         title='<b>Select prediction filename:</b>',
         filter_pattern='*.tif',
         show_hidden=False,
