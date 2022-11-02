@@ -2,6 +2,7 @@ import os
 import re
 import json
 import time
+import math
 import socket
 import tempfile
 import folium
@@ -515,30 +516,56 @@ def main_toolbar(m, sheet):
 
 
 def gen_map(widget_dialog):
-    
-    data_dialog = widget_dialog.children[0]
+    """
+    Generate Map.
+    """
+    if socket.gethostname()[:3] == 'gpu':
+        data_dir = '/explore/nobackup/projects/3sl/data/Tappan'
+        mask_dir = '/explore/nobackup/projects/ilab/projects/' + \
+            'Senegal/3sl/products/land_cover/dev/trees.v2/Tappan'
+    else:
+        data_dir = '/home/jovyan/efs/projects/3sl/data/Tappan'
+        mask_dir = '/home/jovyan/efs/projects/3sl/products/otcb.v1/Tappan'
+        
+    # classes
+    classes = [
+        'other', 'trees/shrub', 'cropland', 'other vegetation', 'water', 'build'
+    ]
 
+    # get data filename
+    data_filename = widget_dialog.children[0].selected
+
+    # get data bands to use for visualization
     data_bands = []
     for item in widget_dialog.children[1].children:
         data_bands.append(item.value)
+    
+    # get product name
+    product_name = widget_dialog.children[2].value
+    
+    # extract label filename from data filename
+    label_filename = os.path.join(
+        mask_dir, f'{Path(data_filename).stem}.{product_name}.tif')
+    # get it from here based on the filename or dataset provided - otcb
+    # get it from the widget between 
 
-    label_dialog = widget_dialog.children[2]
-    val_points_per_class = widget_dialog.children[3].value
+    #label_dialog = widget_dialog.children[2]
+    #val_points_per_class = widget_dialog.children[3].value
     
-    cmap = []
-    for item in widget_dialog.children[4].children[0].children:
-        cmap.append(item.value)
+    #cmap = []
+    #for item in widget_dialog.children[4].children[0].children:
+    #    cmap.append(item.value)
     
-    classes = []
-    for item in widget_dialog.children[4].children[1].children:
-        classes.append(item.value)
+    #classes = []
+    #for item in widget_dialog.children[4].children[1].children:
+    #    classes.append(item.value)
     
     tiles_basemap: str = 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'
-    icons: list = ['cog', 'tree', 'wheat', 'fire']
+    #icons: list = ['cog', 'tree', 'wheat', 'fire']
 
     # read prediction raster
     raster_prediction = rxr.open_rasterio(
-        label_dialog.selected, chunks={"band": 1, "x": 2048, "y": 2048})
+        label_filename, chunks={"band": 1, "x": 2048, "y": 2048})
     raster_prediction.name = "predicted"
     raster_crs = raster_prediction.rio.crs
 
@@ -549,38 +576,71 @@ def gen_map(widget_dialog):
     raster_prediction = raster_prediction.astype({'predicted': 'int'})  # convert mask into int
 
     # create random points
+    # add oloffsson equation here
+    val_points_per_class = 5
+        
     unique_counts = raster_prediction['predicted'].value_counts()
-    for class_id, class_count in unique_counts.iteritems():
+    original_shape = raster_prediction.shape[0]
+    real_classes = ['other', 'tree', 'crop', 'burn']
+    expected_accuracies = [0.90, 0.90, 0.85, 0.85]
+    expected_standard_error = 0.01
+    percentage_counts = list()
+    standard_deviation = list()
+    
+    for class_id, class_count in unique_counts.iteritems():        
+        percentage_counts.append(class_count / original_shape)
+        standard_deviation.append(
+            math.sqrt(expected_accuracies[class_id] * (1-expected_accuracies[class_id]))
+        )
+    
+    unique_counts = unique_counts.to_frame()
+    unique_counts['percent'] = percentage_counts
+    unique_counts['standard_deviation'] = standard_deviation
+    unique_counts = unique_counts.round(2)
+    
+    #print("UNIQUE COUNTS", unique_counts)
+    #print(unique_counts.columns)
+    val_total_points = round((
+        (unique_counts['percent'] * unique_counts['standard_deviation']).sum() / \
+            expected_standard_error) ** 2)
+    #print(val_total_points)
+    
+    #print(unique_counts.columns)
+    
+    for class_id, row in unique_counts.iterrows():
+        #print(index, round(row['percent'] * val_total_points))
+        #print(class_id)
+        val_points = round(row['percent'] * val_total_points)
         raster_prediction = raster_prediction.drop(
             raster_prediction[raster_prediction['predicted'] == class_id].sample(
-                n=class_count - val_points_per_class).index
+                n=int(row['predicted'] - val_points), random_state=24).index
         )
 
     geometry = gpd.points_from_xy(raster_prediction.x, raster_prediction.y)
     raster_prediction = gpd.GeoDataFrame(raster_prediction, crs=raster_crs, geometry=geometry).reset_index(drop=True)
-    
+
     # Client - initial client to localize zoom
-    color_list = [mcolors.rgb2hex(cmap[i]) for i in range(len(cmap))]
-    data_client = TileClient(data_dialog.selected)
+    #color_list = [mcolors.rgb2hex(cmap[i]) for i in range(len(cmap))]
+    data_client = TileClient(data_filename)
     
     # conversion to 16bit
-    label_raster = rxr.open_rasterio(label_dialog.selected).astype(np.int16)
-    label_raster = label_raster.rio.write_nodata(-10001, encoded=True, inplace=True)
-    label_filename = Path(label_dialog.selected)
-    label_output_filename = os.path.join(
-        label_filename.parent.absolute(),
-        f'{label_filename.stem}-16.tif'
-    )
-    label_raster.rio.to_raster(
-        label_output_filename,
-        BIGTIFF="IF_SAFER",
-        compress='LZW',
-        driver='GTiff',
-        dtype='int16'
-    )
+    #label_raster = rxr.open_rasterio(label_dialog.selected).astype(np.int16)
+    #label_raster = label_raster.rio.write_nodata(-10001, encoded=True, inplace=True)
+    #label_filename = Path(label_dialog.selected)
+    #label_output_filename = os.path.join(
+    #    label_filename.parent.absolute(),
+    #    f'{label_filename.stem}-16.tif'
+    #)
+    #label_raster.rio.to_raster(
+    #    label_output_filename,
+    #    BIGTIFF="IF_SAFER",
+    #    compress='LZW',
+    #    driver='GTiff',
+    #    dtype='int16'
+    #)
 
     #label_client = TileClient(label_dialog.selected)
-    label_client = TileClient(label_output_filename)
+    #label_client = TileClient(label_output_filename)
 
     # dataframe to match data_client crs
     raster_prediction = raster_prediction.to_crs(4326)#(data_client.default_projection).split(':')[-1])
@@ -591,8 +651,8 @@ def gen_map(widget_dialog):
     data_layer = get_leaflet_tile_layer(
         data_client, show=False, band=data_bands, name="data")
 
-    label_layer = get_leaflet_tile_layer(
-        label_client, show=False, cmap=color_list, name="label")
+    #label_layer = get_leaflet_tile_layer(
+    #    label_client, show=False, cmap=color_list, name="label")
 
     # Create ipyleaflet map, add tile layer, and display
     m = Map(
@@ -603,7 +663,7 @@ def gen_map(widget_dialog):
         keyboard=True
     )
     m.add_layer(data_layer)
-    m.add_layer(label_layer)
+    #m.add_layer(label_layer)
 
     validation_sheet = ipysheet.sheet(from_dataframe(
         raster_prediction.to_crs(4326).drop(['geometry'], axis=1)
@@ -616,20 +676,27 @@ def gen_map(widget_dialog):
     for index, point in raster_prediction.iterrows():
 
         coordinates = (point['geometry'].y, point['geometry'].x)
-        type_color = cmap[point['predicted']]
-        type_pred = classes[point['predicted']]
+        #type_color = cmap[point['predicted']]
+        #type_pred = classes[point['predicted']]
 
-        radio_pred_widget = widgets.RadioButtons(
-            options=classes,
-            value=type_pred, # Defaults to 'pineapple'
-            layout={'width': 'max-content'}, # If the items' names are long
-            description='Prediction:',
-            disabled=True
-        )
+        #radio_pred_widget = widgets.RadioButtons(
+        #    options=classes,
+        #    value=type_pred, # Defaults to 'pineapple'
+        #    layout={'width': 'max-content'}, # If the items' names are long
+        #    description='Prediction:',
+        #    disabled=True
+        #)
 
         radio_check_widget = widgets.RadioButtons(
             options=classes,
-            value=classes[0], # Defaults to 'pineapple'
+            value=classes[0],
+            layout={'width': 'max-content'}, # If the items' names are long
+            description='Validation:',
+            disabled=False
+        )
+        radio_confidence_widget = widgets.RadioButtons(
+            options=[('high-confidence', 1), ('in-doubt', 2), ('low-confidence', 3)],
+            value=1,
             layout={'width': 'max-content'}, # If the items' names are long
             description='Validation:',
             disabled=False
@@ -645,8 +712,10 @@ def gen_map(widget_dialog):
             disabled=False
         ) 
         popup = widgets.VBox([
-            point_id_widget, radio_pred_widget,
-            radio_check_widget, checked_widget
+            point_id_widget,
+            radio_check_widget,
+            radio_confidence_widget,
+            checked_widget
         ])
 
         marker = Marker(
@@ -654,22 +723,22 @@ def gen_map(widget_dialog):
             location=coordinates,
             draggable=False,
             keyboard=True,
-            icon=AwesomeIcon(
-                name=icons[point['predicted']],
-                marker_color=type_color,
-                icon_color=type_color,
-                # spin=True
-            ),
+            #icon=AwesomeIcon(
+            #    name=icons[point['predicted']],
+            #    marker_color=type_color,
+            #    icon_color=type_color,
+            #    # spin=True
+            #),
             popup=popup
         )
 
-        cell = ipysheet.cell(index, 2, type_pred)
-        widgets.jslink((cell, 'value'), (radio_pred_widget, 'value'))
-        widgets.jslink((radio_pred_widget, 'value'), (cell, 'value'))
-        cell = ipysheet.cell(index, 3, 'other')
+        #cell = ipysheet.cell(index, 2, type_pred)
+        #widgets.jslink((cell, 'value'), (radio_pred_widget, 'value'))
+        #widgets.jslink((radio_pred_widget, 'value'), (cell, 'value'))
+        cell = ipysheet.cell(index, 2, 'other')
         widgets.jslink((cell, 'value'), (radio_check_widget, 'value'))
         widgets.jslink((radio_check_widget, 'value'), (cell, 'value'))
-        cell = ipysheet.cell(index, 4, False)#, choice=)
+        cell = ipysheet.cell(index, 3, False)#, choice=)
         widgets.jslink((cell, 'value'), (checked_widget, 'value'))
 
         # append to group of markers
@@ -682,6 +751,7 @@ def gen_map(widget_dialog):
     # marker_cluster.on_click(handle_click)
 
     m.add_layer(marker_cluster);
+
     m.add_control(ScaleControl(position='bottomleft'))
     m.add_control(LayersControl(position='topright'))
     m.add_control(FullScreenControl())
@@ -690,7 +760,7 @@ def gen_map(widget_dialog):
     display(validation_sheet)
     return m, validation_sheet
 
-def file_chooser_widget(data_dir=None, mask_dir=None):
+def file_chooser_widget(data_dir=None, mask_dir=None, rgb_disabled=True):
     
     hostname = socket.gethostname()
     
@@ -715,16 +785,16 @@ def file_chooser_widget(data_dir=None, mask_dir=None):
         show_only_dirs=False,
         use_dir_icons=True
     )
-    mask_dialog = FileChooser(
-        mask_dir,
-        filename='Tappan01_WV02_20110430_M1BS_103001000A27E100_data.otcb.tif',
-        title='<b>Select prediction filename:</b>',
-        filter_pattern='*.tif',
-        show_hidden=False,
-        select_default=True,
-        show_only_dirs=False,
-        use_dir_icons=True
-    )
+    #mask_dialog = FileChooser(
+    #    mask_dir,
+    #    filename='Tappan01_WV02_20110430_M1BS_103001000A27E100_data.otcb.tif',
+    #    title='<b>Select prediction filename:</b>',
+    #    filter_pattern='*.tif',
+    #    show_hidden=False,
+    #    select_default=True,
+    #    show_only_dirs=False,
+    #    use_dir_icons=True
+    #)
 
     buttons = widgets.ToggleButtons(
         value=None,
@@ -741,18 +811,21 @@ def file_chooser_widget(data_dir=None, mask_dir=None):
     # bands chooser
     red = widgets.Dropdown(
         options=bands,
-        value=5,
+        value=7,
         description='Red:',
+        disabled=rgb_disabled
     )
     green = widgets.Dropdown(
         options=bands,
-        value=7,
+        value=3,
         description='Green:',
+        disabled=rgb_disabled
     )
     blue = widgets.Dropdown(
         options=bands,
         value=2,
         description='Blue:',
+        disabled=rgb_disabled
     )
 
     bands_widget = widgets.HBox([red, green, blue])
@@ -775,51 +848,56 @@ def file_chooser_widget(data_dir=None, mask_dir=None):
     )
     """
     
-    n_points_widget =  widgets.BoundedIntText(
-        value=50,
-        min=0,
-        max=200,
-        step=1,
-        description='Points per Class:',
-        disabled=False,
-        layout={'width': 'max-content'},
-        align_items='stretch', 
-        style= {'description_width': 'initial'}
-    )
+    #n_points_widget =  widgets.BoundedIntText(
+    #    value=50,
+    #    min=0,
+    #    max=200,
+    #    step=1,
+    #    description='Points per Class:',
+    #    disabled=False,
+    #    layout={'width': 'max-content'},
+    #    align_items='stretch', 
+    #    style= {'description_width': 'initial'}
+    #)
     
     # colors chooser
-    colors_widget_list = []
-    cmap = ['lightgray', 'green', 'orange', 'red']
-    for index, color in enumerate(cmap):
-        colors_widget_list.append(
-            widgets.Dropdown(
-                options=cmap,
-                value=color,
-                description=f'Class {index}:',
-            )
-        )
+    #colors_widget_list = []
+    #cmap = ['lightgray', 'green', 'orange', 'red']
+    #for index, color in enumerate(cmap):
+    #    colors_widget_list.append(
+    #        widgets.Dropdown(
+    #            options=cmap,
+    #            value=color,
+    #            description=f'Class {index}:',
+    #        )
+    #    )
 
     # classes chooser
-    classes_widget_list = []
-    classes = ['other', 'tree', 'crop', 'burn']
-    for index, c in enumerate(classes):
-        classes_widget_list.append(
-            widgets.Dropdown(
-                options=classes,
-                value=c,
-                description=f'Class {index}:',
-            )
-        )
+    #classes_widget_list = []
+    #classes = ['other', 'tree', 'crop', 'burn']
+    #for index, c in enumerate(classes):
+    #    classes_widget_list.append(
+    #        widgets.Dropdown(
+    #            options=classes,
+    #            value=c,
+    #            description=f'Class {index}:',
+    #        )
+    #    )
 
-    colors_class_widget = widgets.HBox([
-        widgets.VBox(colors_widget_list),
-         widgets.VBox(classes_widget_list),
-    ])
+    #colors_class_widget = widgets.HBox([
+    #    widgets.VBox(colors_widget_list),
+    #     widgets.VBox(classes_widget_list),
+    #])
+    
+    radio_product_widget = widgets.RadioButtons(
+        options=['otcb', 'tree', 'crop', 'cloud'],
+        value='otcb', # Defaults to 'pineapple'
+        layout={'width': 'max-content'}, # If the items' names are long
+        description='<b>Product:</b>',
+        disabled=True
+    )
 
-    filechooser_widget = widgets.VBox([
-        data_dialog, bands_widget, mask_dialog, n_points_widget,
-        colors_class_widget
-    ])
+    filechooser_widget = widgets.VBox([data_dialog, bands_widget, radio_product_widget])
 
     display(filechooser_widget)    
     return filechooser_widget
@@ -838,10 +916,10 @@ def save_file(filename_widget, validation_sheet):
         output_dir = '/home/jovyan/efs/projects/3sl/validation'
     
     # get filename
-    filename = Path(filename_widget.children[2].selected).stem
+    filename = Path(filename_widget.children[0].selected).stem
 
     # full output_dir
-    full_dirs = filename_widget.children[2].selected.split('/')
+    full_dirs = filename_widget.children[0].selected.split('/')
     output_dir = os.path.join(output_dir, username, full_dirs[-3], full_dirs[-2])
     os.makedirs(output_dir, exist_ok=True)
     
