@@ -41,7 +41,8 @@ from ipyleaflet import (
     AwesomeIcon,
     LegendControl,
     MarkerCluster,
-    WidgetControl
+    WidgetControl,
+    SearchControl
 )
 
 
@@ -522,14 +523,14 @@ def gen_map(widget_dialog):
     if socket.gethostname()[:3] == 'gpu':
         data_dir = '/explore/nobackup/projects/3sl/data/Tappan'
         mask_dir = '/explore/nobackup/projects/ilab/projects/' + \
-            'Senegal/3sl/products/land_cover/dev/trees.v2/Tappan'
+            'Senegal/3sl/products/land_cover/dev/otcb.v1/Tappan'
     else:
         data_dir = '/home/jovyan/efs/projects/3sl/data/Tappan'
         mask_dir = '/home/jovyan/efs/projects/3sl/products/otcb.v1/Tappan'
         
     # classes
     classes = [
-        'other', 'trees/shrub', 'cropland', 'other vegetation', 'water', 'build'
+        'other', 'trees/shrub', 'cropland', 'burn', 'other vegetation', 'water', 'build'
     ]
 
     # get data filename
@@ -621,6 +622,7 @@ def gen_map(widget_dialog):
 
     # Client - initial client to localize zoom
     #color_list = [mcolors.rgb2hex(cmap[i]) for i in range(len(cmap))]
+    max_zoom = 30
     data_client = TileClient(data_filename)
     
     # conversion to 16bit
@@ -644,12 +646,15 @@ def gen_map(widget_dialog):
 
     # dataframe to match data_client crs
     raster_prediction = raster_prediction.to_crs(4326)#(data_client.default_projection).split(':')[-1])
+    raster_prediction = raster_prediction.drop(['predicted'], axis=1)
     raster_prediction['operator'] = 0
     raster_prediction['verified'] = 'false'
 
     # Create ipyleaflet TileLayer from that server
     data_layer = get_leaflet_tile_layer(
-        data_client, show=False, band=data_bands, name="data")
+        data_client, show=False, band=data_bands, name="data",
+        max_zoom=max_zoom, max_native_zoom=max_zoom
+    )
 
     #label_layer = get_leaflet_tile_layer(
     #    label_client, show=False, cmap=color_list, name="label")
@@ -658,6 +663,7 @@ def gen_map(widget_dialog):
     m = Map(
         center=data_client.center(),
         zoom=data_client.default_zoom,
+        max_zoom=max_zoom,
         basemap=basemaps.Esri.WorldImagery,
         scroll_wheel_zoom=True,
         keyboard=True
@@ -695,7 +701,7 @@ def gen_map(widget_dialog):
             disabled=False
         )
         radio_confidence_widget = widgets.RadioButtons(
-            options=[('high-confidence', 1), ('in-doubt', 2), ('low-confidence', 3)],
+            options=[('high-confidence', 1), ('medium-confidence', 2), ('low-confidence', 3)],
             value=1,
             layout={'width': 'max-content'}, # If the items' names are long
             description='Validation:',
@@ -740,6 +746,11 @@ def gen_map(widget_dialog):
         widgets.jslink((radio_check_widget, 'value'), (cell, 'value'))
         cell = ipysheet.cell(index, 3, False)#, choice=)
         widgets.jslink((cell, 'value'), (checked_widget, 'value'))
+        
+        #def handle_click(**kwargs):
+        #    print(kwargs)
+        
+        #marker.on_click(handle_click)
 
         # append to group of markers
         markers_list.append(marker)
@@ -755,6 +766,7 @@ def gen_map(widget_dialog):
     m.add_control(ScaleControl(position='bottomleft'))
     m.add_control(LayersControl(position='topright'))
     m.add_control(FullScreenControl())
+    m.add_control(SearchControl())
 
     display(m)
     display(validation_sheet)
@@ -767,7 +779,7 @@ def file_chooser_widget(data_dir=None, mask_dir=None, rgb_disabled=True):
     if socket.gethostname()[:3] == 'gpu':
         data_dir = '/explore/nobackup/projects/3sl/data/Tappan'
         mask_dir = '/explore/nobackup/projects/ilab/projects/' + \
-            'Senegal/3sl/products/land_cover/dev/trees.v2/Tappan'
+            'Senegal/3sl/products/land_cover/dev/otcb.v1/Tappan'
     else:
         data_dir = '/home/jovyan/efs/projects/3sl/data/Tappan'
         mask_dir = '/home/jovyan/efs/projects/3sl/products/otcb.v1/Tappan'
