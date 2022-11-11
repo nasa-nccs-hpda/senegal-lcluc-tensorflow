@@ -585,11 +585,9 @@ class ValidationDashboard(ipyleaflet.Map):
                     )
                     os.makedirs(output_dir, exist_ok=True)
 
+                    short_filename = Path(self._selected_filename).stem
                     self.output_filename = os.path.join(
-                        output_dir,
-                        f"{self.username}"
-                        + f"-{Path(self._selected_filename).stem}.gpkg"
-                    )
+                        output_dir, f"{self.username}-{short_filename}.gpkg")
 
                     # Visualize or generate markers for validation
                     self.add_markers(
