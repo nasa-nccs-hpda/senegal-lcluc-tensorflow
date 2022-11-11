@@ -54,6 +54,7 @@ class ValidationDashboard(ipyleaflet.Map):
         # Define max_zoom options
         if "max_zoom" not in kwargs:
             kwargs["max_zoom"] = 20
+            self.default_max_zoom = 20
             self.default_zoom = 18
 
         # Define zoom capabilities
@@ -231,8 +232,8 @@ class ValidationDashboard(ipyleaflet.Map):
         self.add_layer(
             get_leaflet_tile_layer(
                 raster_client, show=False, band=data_bands,
-                cmap=cmap, max_zoom=int(self.max_zoom),
-                max_native_zoom=int(self.max_zoom),
+                cmap=cmap, max_zoom=self.default_max_zoom,
+                max_native_zoom=self.default_max_zoom,
                 name=layer_name, scheme='linear',
                 dtype='uint16', style={'bands': style_list}
             )
