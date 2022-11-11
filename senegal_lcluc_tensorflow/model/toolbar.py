@@ -575,6 +575,7 @@ def gen_map(widget_dialog):
     raster_prediction = raster_prediction.drop(['band', 'spatial_ref'], axis=1)  # drop some unecessary columns
     raster_prediction = raster_prediction[raster_prediction['predicted'] >= 0]  # only select appropiate values, remove no-data
     raster_prediction = raster_prediction.astype({'predicted': 'int'})  # convert mask into int
+    #print("Finished reading raster")
 
     # create random points
     # add oloffsson equation here
@@ -616,14 +617,16 @@ def gen_map(widget_dialog):
             raster_prediction[raster_prediction['predicted'] == class_id].sample(
                 n=int(row['predicted'] - val_points), random_state=24).index
         )
+    #print("Finished dropping points")
 
     geometry = gpd.points_from_xy(raster_prediction.x, raster_prediction.y)
     raster_prediction = gpd.GeoDataFrame(raster_prediction, crs=raster_crs, geometry=geometry).reset_index(drop=True)
 
     # Client - initial client to localize zoom
     #color_list = [mcolors.rgb2hex(cmap[i]) for i in range(len(cmap))]
-    max_zoom = 30
+    max_zoom = 20
     data_client = TileClient(data_filename)
+    #print("created data client")
     
     # conversion to 16bit
     #label_raster = rxr.open_rasterio(label_dialog.selected).astype(np.int16)
@@ -655,6 +658,7 @@ def gen_map(widget_dialog):
         data_client, show=False, band=data_bands, name="data",
         max_zoom=max_zoom, max_native_zoom=max_zoom
     )
+    #print("created data layer")
 
     #label_layer = get_leaflet_tile_layer(
     #    label_client, show=False, cmap=color_list, name="label")
@@ -666,7 +670,8 @@ def gen_map(widget_dialog):
         max_zoom=max_zoom,
         basemap=basemaps.Esri.WorldImagery,
         scroll_wheel_zoom=True,
-        keyboard=True
+        keyboard=True,
+        prefer_canvas=True
     )
     m.add_layer(data_layer)
     #m.add_layer(label_layer)
@@ -767,6 +772,42 @@ def gen_map(widget_dialog):
     m.add_control(LayersControl(position='topright'))
     m.add_control(FullScreenControl())
     m.add_control(SearchControl())
+    
+    # Adds search button and search box
+    search_button = widgets.ToggleButton(
+        value=False,
+        tooltip="Search location/data",
+        icon="globe",
+        layout=widgets.Layout(
+            width="28px", height="28px", padding="0px 0px 0px 4px"
+        ),
+    )
+
+    search_type = widgets.ToggleButtons(
+        options=["name/address", "lat-lon", "data"],
+        tooltips=[
+            "Search by place name or address",
+            "Search by lat-lon coordinates",
+            "Search Earth Engine data catalog",
+        ],
+    )
+    search_type.style.button_width = "110px"
+
+    search_box = widgets.Text(
+        placeholder="Search by place name or address",
+        tooltip="Search location",
+        layout=widgets.Layout(width="340px"),
+    )
+
+    search_output = widgets.Output(
+        layout={
+            "max_width": "340px",
+            "max_height": "350px",
+            "overflow": "scroll",
+        }
+    )
+
+    search_results = widgets.RadioButtons()
 
     display(m)
     display(validation_sheet)
