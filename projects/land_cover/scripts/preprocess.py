@@ -7,7 +7,6 @@ import sys
 import logging
 import argparse
 import omegaconf
-from glob import glob
 from pathlib import Path
 
 import numpy as np
@@ -16,8 +15,7 @@ import rioxarray as rxr
 
 from tensorflow_caney.config.cnn_config import Config
 from tensorflow_caney.utils.system import seed_everything
-from tensorflow_caney.utils.data import gen_random_tiles, \
-    gen_random_tiles_from_json, read_dataset_csv
+from tensorflow_caney.utils.data import gen_random_tiles, read_dataset_csv
 from tensorflow_caney.utils.data import modify_bands, get_dataset_filenames
 from tensorflow_caney.utils.data import modify_label_classes
 from tensorflow_caney.utils.data import get_mean_std_dataset
@@ -36,7 +34,8 @@ __status__ = "Development"
 # script preprocess.py
 # ---------------------------------------------------------------------------
 def run(
-            args: argparse.Namespace, conf: omegaconf.dictconfig.DictConfig
+            args: argparse.Namespace,
+            conf: omegaconf.dictconfig.DictConfig
         ) -> None:
     """
     Run preprocessing steps.
