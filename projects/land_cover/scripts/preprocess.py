@@ -34,9 +34,8 @@ __status__ = "Development"
 # script preprocess.py
 # ---------------------------------------------------------------------------
 def run(
-            args: argparse.Namespace,
-            conf: omegaconf.dictconfig.DictConfig
-        ) -> None:
+        args: argparse.Namespace,
+        conf: omegaconf.dictconfig.DictConfig) -> None:
     """
     Run preprocessing steps.
 

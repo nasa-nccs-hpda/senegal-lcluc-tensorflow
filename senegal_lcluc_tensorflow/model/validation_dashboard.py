@@ -131,7 +131,7 @@ class ValidationDashboard(ipyleaflet.Map):
         # Define available raster bands
         if "default_bands" not in kwargs:
             self.default_bands = [
-                ('Coastal Blue', 1), ('Blue', 2), ('Green', 3),  ('Yellow', 4),
+                ('Coastal Blue', 1), ('Blue', 2), ('Green', 3), ('Yellow', 4),
                 ('Red', 5), ('Red Edge', 6), ('NIR1', 7), ('NIR2', 8)
             ]
         else:
@@ -205,13 +205,12 @@ class ValidationDashboard(ipyleaflet.Map):
         self._main_toolbar()
 
     def add_raster(
-                self,
-                in_raster: str,
-                data_bands: list = [5, 7, 2],
-                cmap: list = None,
-                sigma: int = 2,
-                layer_name: str = "Raster"
-            ):
+            self,
+            in_raster: str,
+            data_bands: list = [5, 7, 2],
+            cmap: list = None,
+            sigma: int = 2,
+            layer_name: str = "Raster") -> None:
         """
         Adds a raster layer to the map.
         """
@@ -271,8 +270,8 @@ class ValidationDashboard(ipyleaflet.Map):
             percentage_counts.append(class_count / original_shape)
             standard_deviation.append(
                 math.sqrt(
-                    self.expected_accuracies[class_id] *
-                    (1 - self.expected_accuracies[class_id]))
+                    self.expected_accuracies[class_id]
+                    * (1 - self.expected_accuracies[class_id]))
             )
 
         unique_counts = unique_counts.to_frame()
@@ -281,9 +280,9 @@ class ValidationDashboard(ipyleaflet.Map):
         unique_counts = unique_counts.round(2)
 
         val_total_points = round(((
-            unique_counts['percent'] *
-            unique_counts['standard_deviation']).sum() /
-            self.expected_standard_error) ** 2)
+            unique_counts['percent']
+            * unique_counts['standard_deviation']).sum()
+            / self.expected_standard_error) ** 2)
 
         for class_id, row in unique_counts.iterrows():
             val_points = round(row['percent'] * val_total_points)
@@ -588,8 +587,8 @@ class ValidationDashboard(ipyleaflet.Map):
 
                     self.output_filename = os.path.join(
                         output_dir,
-                        f"{self.username}" +
-                        f"-{Path(self._selected_filename).stem}.gpkg"
+                        f"{self.username}"
+                        + f"-{Path(self._selected_filename).stem}.gpkg"
                     )
 
                     # Visualize or generate markers for validation
