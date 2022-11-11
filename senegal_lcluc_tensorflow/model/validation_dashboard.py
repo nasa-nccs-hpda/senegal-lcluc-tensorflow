@@ -1,15 +1,13 @@
 import os
-import time
 import math
 import socket
 import ipysheet
 import ipyleaflet
-import pandas as pd
 import geopandas as gpd
 import rioxarray as rxr
 import ipywidgets as widgets
 import whiteboxgui.whiteboxgui as wbt
-import matplotlib.colors as mcolors
+
 from pathlib import Path
 from ipyfilechooser import FileChooser
 from IPython.display import display
@@ -22,7 +20,6 @@ from ipyleaflet import (
     Marker,
     basemaps,
     AwesomeIcon,
-    LegendControl,
     MarkerCluster,
     WidgetControl
 )
@@ -50,7 +47,7 @@ class ValidationDashboard(ipyleaflet.Map):
         # Define initial zoom level
         if "zoom" not in kwargs:
             kwargs["zoom"] = 6
-            
+
         # Define max_zoom options
         if "max_zoom" not in kwargs:
             kwargs["max_zoom"] = 20
@@ -83,7 +80,7 @@ class ValidationDashboard(ipyleaflet.Map):
         self.add_control(LayersControl(position="topright"))
         self.add_control(DrawControl(position="topleft"))
         self.add_control(ScaleControl(position="bottomleft"))
-        
+
         # Retrieve hostname
         self.hostname = socket.gethostname()
 
@@ -105,33 +102,32 @@ class ValidationDashboard(ipyleaflet.Map):
                 self.mask_dir = '/explore/nobackup/projects/ilab/projects/' + \
                     'Senegal/3sl/products/land_cover/dev/otcb.v1/Tappan'
             else:
-                self.mask_dir = '/home/jovyan/efs/projects/3sl/products/otcb.v1/Tappan'
+                self.mask_dir = \
+                    '/home/jovyan/efs/projects/3sl/products/otcb.v1/Tappan'
         else:
             self.mask_dir = kwargs['mask_dir']
         assert os.path.exists(self.mask_dir), f'{self.mask_dir} does not exist'
-        
-        # timestr = time.strftime("%Y%m%d-%H%M%S")
-    
+
         # Define output directory, if no argument given, proceed with defaults
         if "output_dir" not in kwargs:
             # Definition for Explore and SMCE clusters
             if self.hostname[:3] == 'gpu':
                 self.username = os.environ['USER']
-                self.output_dir = '/explore/nobackup/projects/3sl/development/scratch'
+                self.output_dir = \
+                    '/explore/nobackup/projects/3sl/development/scratch'
             else:
                 self.username = self.hostname.split('-')[-1]
                 self.output_dir = '/home/jovyan/efs/projects/3sl/validation'
         else:
             self.output_dir = kwargs['output_dir']
 
-        #print(self.username)
-            
+        # Create output_dir
         os.makedirs(self.output_dir, exist_ok=True)
-        
+
         # Cleanup data_dir and mask_dir variables
         self.data_dir = os.path.abspath(self.data_dir)
         self.mask_dir = os.path.abspath(self.mask_dir)
-        
+
         # Define available raster bands
         if "default_bands" not in kwargs:
             self.default_bands = [
@@ -146,14 +142,15 @@ class ValidationDashboard(ipyleaflet.Map):
             self.rgb_bands = [7, 3, 2]
         else:
             self.rgb_bands = kwargs['rgb_bands']
-            assert len(self.rgb_bands) == 3, f"rgb_bands requires list of 3 items"
-        
+            assert len(self.rgb_bands) == 3, \
+                f"rgb_bands expected 3 items, {len(self.rgb_bands)} given"
+
         # Define wether we allow users to define their own bands
         if "rgb_disabled" not in kwargs:
             self.rgb_disabled = True
         else:
             self.rgb_disabled = kwargs['rgb_disabled']
-        
+
         # Define validation classes
         if "validation_classes" not in kwargs:
             self.validation_classes = [
@@ -162,7 +159,7 @@ class ValidationDashboard(ipyleaflet.Map):
             ]
         else:
             self.validation_classes = kwargs['validation_classes']
-            
+
         # Define mask classes
         if "mask_classes" not in kwargs:
             self.mask_classes = ['other', 'tree', 'crop', 'burn']
@@ -174,7 +171,7 @@ class ValidationDashboard(ipyleaflet.Map):
             self.gen_points = True
         else:
             self.gen_points = kwargs['gen_points']
-        
+
         if "expected_accuracies" not in kwargs:
             self.expected_accuracies = [0.90, 0.90, 0.90, 0.90]
         else:
@@ -184,31 +181,32 @@ class ValidationDashboard(ipyleaflet.Map):
             self.expected_standard_error = 0.01
         else:
             self.expected_standard_error = kwargs['expected_standard_error']
-            
+
+        # Set product name
         if "product_name" not in kwargs:
             self.product_name = 'otcb'
         else:
             self.product_name = kwargs['product_name']
 
+        # Set xarray chunk attributes
         if "chunks" not in kwargs:
             self.chunks = {"band": 1, "x": 2048, "y": 2048}
         else:
             self.chunks = kwargs["chunks"]
 
         self.output_filename = None
+        self.raster_crs = None
+
         self._validation_sheet = None
         self._markers_dict = dict()
         self._marker_counter = -1
-        self.raster_crs = None
 
         # Start main toolbar
         self._main_toolbar()
 
-
     def add_raster(
                 self,
                 in_raster: str,
-                style: str = None,
                 data_bands: list = [5, 7, 2],
                 cmap: list = None,
                 sigma: int = 2,
@@ -216,11 +214,10 @@ class ValidationDashboard(ipyleaflet.Map):
             ):
         """
         Adds a raster layer to the map.
-        Args:
         """
         # create TileClient object
         raster_client = TileClient(in_raster)
-        
+
         style_list = []
         for bid, pid in zip(data_bands, ['#f00', '#0f0', '#00f']):
             band_stats = raster_client.rasterio.statistics(bid)
@@ -228,7 +225,7 @@ class ValidationDashboard(ipyleaflet.Map):
             newmax = band_stats.mean + (band_stats.std * sigma)
             style_list.append(
                 {'band': bid, 'palette': pid, 'min': newmin, 'max': newmax})
-        
+
         self.add_layer(
             get_leaflet_tile_layer(
                 raster_client, show=False, band=data_bands,
@@ -243,7 +240,7 @@ class ValidationDashboard(ipyleaflet.Map):
 
     def generate_points(self, mask_filename: str):
         """
-        Generate points
+        Generate points.
         """
         # read prediction raster
         raster_prediction = rxr.open_rasterio(
@@ -252,139 +249,125 @@ class ValidationDashboard(ipyleaflet.Map):
         raster_prediction = raster_prediction.rio.reproject("EPSG:4326")
         self.raster_crs = raster_prediction.rio.crs
 
-        # convert to dataframe and filter no-data
-        raster_prediction = raster_prediction.squeeze().to_dataframe().reset_index()
+        # Convert to dataframe and filter no-data
+        raster_prediction = \
+            raster_prediction.squeeze().to_dataframe().reset_index()
         raster_prediction = raster_prediction.drop(
             ['band', 'spatial_ref'], axis=1)  # drop some unecessary columns
-        # only select appropiate values, remove no-data
-        raster_prediction = raster_prediction[raster_prediction['predicted'] >= 0]
-        #print("BEFORE", raster_prediction.shape)
-        raster_prediction = raster_prediction[raster_prediction['predicted'] < 255]
-        #print("AFTER", raster_prediction.shape)
-        # convert mask into int
+
+        # Only select appropiate values, remove no-data
+        raster_prediction = raster_prediction[
+            raster_prediction['predicted'] >= 0]
+        raster_prediction = raster_prediction[
+            raster_prediction['predicted'] < 255]
+
+        # Convert mask to int
         raster_prediction = raster_prediction.astype({'predicted': 'int'})
-        
         unique_counts = raster_prediction['predicted'].value_counts()
         original_shape = raster_prediction.shape[0]
-        
+
         percentage_counts, standard_deviation = [], []
         for class_id, class_count in unique_counts.iteritems():
-            #print("CLASS ID", class_id, class_count)
             percentage_counts.append(class_count / original_shape)
             standard_deviation.append(
                 math.sqrt(
-                    self.expected_accuracies[class_id] * \
+                    self.expected_accuracies[class_id] *
                     (1 - self.expected_accuracies[class_id]))
             )
-            
+
         unique_counts = unique_counts.to_frame()
         unique_counts['percent'] = percentage_counts
         unique_counts['standard_deviation'] = standard_deviation
         unique_counts = unique_counts.round(2)
 
-        val_total_points = round((
-            (unique_counts['percent'] * unique_counts['standard_deviation']).sum() / \
-                self.expected_standard_error) ** 2)
-        
+        val_total_points = round(((
+            unique_counts['percent'] *
+            unique_counts['standard_deviation']).sum() /
+            self.expected_standard_error) ** 2)
+
         for class_id, row in unique_counts.iterrows():
             val_points = round(row['percent'] * val_total_points)
             raster_prediction = raster_prediction.drop(
-                raster_prediction[raster_prediction['predicted'] == class_id].sample(
-                    n=int(row['predicted'] - val_points), random_state=24).index
+                raster_prediction[
+                    raster_prediction['predicted'] == class_id].sample(
+                        n=int(row['predicted'] - val_points),
+                        random_state=24).index
             )
-        #TEMP
-        #print(raster_prediction.shape)
-        #raster_prediction = raster_prediction.iloc[:100 , :]
-        #print(raster_prediction.shape)
-        #print("original CRS", self.raster_crs)
-
 
         geometry = gpd.points_from_xy(raster_prediction.x, raster_prediction.y)
         raster_prediction = gpd.GeoDataFrame(
-            raster_prediction, crs=self.raster_crs, geometry=geometry).reset_index(drop=True)
+            raster_prediction,
+            crs=self.raster_crs,
+            geometry=geometry).reset_index(drop=True)
         return raster_prediction
 
     def add_markers(self, in_raster: str, gen_points: bool = True):
-        
+
         # Extract label filename from data filename
         mask_filename = os.path.join(
             self.mask_dir, f'{Path(in_raster).stem}.{self.product_name}.tif')
-        
+
         if not gen_points or os.path.isfile(self.output_filename):
-            #print("NOT GEN POINTS")
             validation_points = self.load_gpkg(self.output_filename)
-            #print(validation_points.crs)
             validation_points = validation_points.to_crs(epsg=4326)
-            #print(validation_points.crs)
         else:
-            #print("GEN POINTS")
             validation_points = self.generate_points(mask_filename)
-            validation_points = validation_points.drop(['predicted'], axis=1).to_crs(4326)
+            validation_points = validation_points.drop(
+                ['predicted'], axis=1).to_crs(4326)
             validation_points['operator'] = 'other'
             validation_points['burnt'] = 0
             validation_points['confidence'] = 1
             validation_points['verified'] = 'false'
-            
-        #print("VAL POINTS AFTER TO CRS", validation_points.head())
-        #print("VAL POINTS AFTER TO CRS", validation_points.crs)
 
-        
+        # Create ipysheet object
         self._validation_sheet = ipysheet.sheet(
             ipysheet.from_dataframe(
                 validation_points.to_crs(4326).drop(['geometry'], axis=1)))
         widgets.Dropdown.value.tag(sync=True)
-        
-        #print(validation_points.head())
 
-
+        # Iterate over each point and add them to the map
         for index, point in validation_points.iterrows():
-            
-            #print(index)
-            
+
             # get coordinates
             coordinates = (point['geometry'].y, point['geometry'].x)
-            #print(point)
             if point['verified'] == 'false' or not point['verified']:
                 verified_option = False
             else:
                 verified_option = True
-            #print(coordinates, point['operator'], verified_option)
-        
+
             radio_check_widget = widgets.RadioButtons(
                 options=self.validation_classes,
                 value=point['operator'],
-                layout={'width': 'max-content'}, # If the items' names are long
+                layout={'width': 'max-content'},
                 description='Validation:',
                 disabled=False
             )
-            #print("BEFORE FORCING radio_check_widget", radio_check_widget.value)
-            #radio_check_widget.value = point['operator']
-            #print("AFTER FORCING radio_check_widget", radio_check_widget.value)
-            
+
             radio_burn_widget = widgets.RadioButtons(
                 options=[('not-burnt', 0), ('burnt', 1)],
                 value=point['burnt'],
-                layout={'width': 'max-content'}, # If the items' names are long
+                layout={'width': 'max-content'},
                 description='Burnt:',
                 disabled=False
             )
-            #print("BEFORE FORCING radio_burn_widget", radio_burn_widget.value)
-            #radio_check_widget.value = point['burnt']
-            #print("AFTER FORCING radio_burn_widget", radio_burn_widget.value)
-            
-            
+
             radio_confidence_widget = widgets.RadioButtons(
-                options=[('high-confidence', 1), ('medium-confidence', 2), ('low-confidence', 3)],
+                options=[
+                    ('high-confidence', 1),
+                    ('medium-confidence', 2),
+                    ('low-confidence', 3)],
                 value=point['confidence'],
-                layout={'width': 'max-content'}, # If the items' names are long
+                layout={'width': 'max-content'},
                 description='Confidence:',
                 disabled=False
             )
+
             point_id_widget = widgets.IntText(
                 value=index,
                 description='ID:',
                 disabled=True
             )
+
             checked_widget = widgets.Checkbox(
                 value=verified_option,
                 description='Verified:',
@@ -398,8 +381,7 @@ class ValidationDashboard(ipyleaflet.Map):
                 radio_confidence_widget,
                 checked_widget
             ])
-            
-            #### 
+
             marker = Marker(
                 name=str(index),
                 location=coordinates,
@@ -407,10 +389,8 @@ class ValidationDashboard(ipyleaflet.Map):
                 keyboard=True,
                 popup=popup
             )
-            
-            # IF THIS POINT WAS VERIFIED, ADD MARKER AS WHEN CHECKEDDDDD#
+
             if verified_option:
-                #print("YESSSS WAS VERIFIED")
                 marker.icon = AwesomeIcon(
                     name='check-square',
                     marker_color='green',
@@ -425,32 +405,36 @@ class ValidationDashboard(ipyleaflet.Map):
             widgets.jslink((cell, 'value'), (radio_confidence_widget, 'value'))
             cell = ipysheet.cell(index, 5, verified_option)
             widgets.jslink((cell, 'value'), (checked_widget, 'value'))
-            
+
+            # Store the real marker object in the dictionary
             self._markers_dict[tuple(marker.location)] = marker
-   
+
             def handle_marker_on_click(*args, **kwargs):
-                
-                self._markers_dict[tuple(kwargs['coordinates'])].icon = AwesomeIcon(
-                    name='check-square',
-                    marker_color='green',
-                    icon_color='black'
+
+                self._markers_dict[
+                    tuple(kwargs['coordinates'])].icon = AwesomeIcon(
+                        name='check-square',
+                        marker_color='green',
+                        icon_color='black'
                 )
-                
+
                 self.save_gpkg(
                     ipysheet.to_dataframe(self._validation_sheet),
                     self.output_filename
                 )
             marker.on_click(handle_marker_on_click)
-                            
+
         marker_cluster = MarkerCluster(
             markers=tuple(list(self._markers_dict.values())),
             name="validation"
         )
         self.add_layer(marker_cluster)
-        
         return
 
     def save_gpkg(self, df, output_filename, layer="validation"):
+        """
+        Save gpkg.
+        """
         gdf = gpd.GeoDataFrame(
             df, crs=self.raster_crs,
             geometry=gpd.points_from_xy(df.x, df.y))
@@ -458,6 +442,9 @@ class ValidationDashboard(ipyleaflet.Map):
         return
 
     def load_gpkg(self, input_filename):
+        """
+        Load gpkg.
+        """
         gdf = gpd.read_file(input_filename).drop(['index'], axis=1)
         self.raster_crs = gdf.crs
         self._marker_counter = gdf[
@@ -506,8 +493,7 @@ class ValidationDashboard(ipyleaflet.Map):
             rows, cols, grid_gap="0px", layout=widgets.Layout(width="62px")
         )
 
-        icons = ["folder-open", "gears", "arrow-left", "arrow-right"] #"map-marker",
-
+        icons = ["folder-open", "gears", "arrow-left", "arrow-right"]
         for i in range(rows):
             for j in range(cols):
                 grid[i, j] = widgets.Button(
@@ -541,8 +527,8 @@ class ValidationDashboard(ipyleaflet.Map):
             tooltips=["Apply", "Reset", "Close"],
             button_style="primary",
         )
-        
-        # bands chooser
+
+        # Bands chooser
         red = widgets.Dropdown(
             options=self.default_bands,
             value=self.rgb_bands[0],
@@ -577,35 +563,44 @@ class ValidationDashboard(ipyleaflet.Map):
             Observer for filechooser_widget button_click
             """
             if change["new"] == "Apply" and fc.selected is not None:
-                
+
                 self._selected_filename = fc.selected
 
                 if self._selected_filename.endswith(".tif"):
-                    
+
                     # Get current bands from widget, add raster to Map
-                    data_bands = [item.value for item in bands_widget.children]                    
+                    data_bands = [item.value for item in bands_widget.children]
                     self.add_raster(
-                        self._selected_filename, layer_name="Raster", data_bands=data_bands)
-                    
+                        self._selected_filename,
+                        layer_name="Raster",
+                        data_bands=data_bands
+                    )
+
                     # Set output_filename
                     full_dirs = self._selected_filename.split('/')
                     output_dir = os.path.join(
-                        self.output_dir, self.username, full_dirs[-3], full_dirs[-2])
+                        self.output_dir,
+                        self.username,
+                        full_dirs[-3],
+                        full_dirs[-2]
+                    )
                     os.makedirs(output_dir, exist_ok=True)
 
                     self.output_filename = os.path.join(
-                        output_dir, f"{self.username}-{Path(self._selected_filename).stem}.gpkg")
-                    
-                    # Visualize or generate markers for validation
-                    self.add_markers(self._selected_filename, gen_points=self.gen_points)
+                        output_dir,
+                        f"{self.username}" +
+                        f"-{Path(self._selected_filename).stem}.gpkg"
+                    )
 
-                elif self._selected_filename.endswith(".shp"):
-                    self.add_shapefile(self._selected_filename, layer_name="Shapefile")
-                elif self._selected_filename.endswith(".geojson"):
-                    self.add_geojson(self._selected_filename, layer_name="GeoJSON")
+                    # Visualize or generate markers for validation
+                    self.add_markers(
+                        self._selected_filename,
+                        gen_points=self.gen_points
+                    )
 
             elif change["new"] == "Reset":
                 fc.reset()
+
             elif change["new"] == "Close":
                 fc.reset()
                 self.remove_control(output_ctrl)
@@ -644,15 +639,18 @@ class ValidationDashboard(ipyleaflet.Map):
                     if len(list(self._markers_dict)) <= self._marker_counter:
                         self._marker_counter = 0
 
-                    self.center = tuple(list(self._markers_dict)[self._marker_counter])
+                    self.center = tuple(
+                        list(self._markers_dict)[self._marker_counter])
                     self.zoom = self.default_zoom
-                    
+
                 elif b.icon == "arrow-left":
                     self._marker_counter = self._marker_counter - 1
                     if self._marker_counter < 0:
-                        self._marker_counter = len(list(self._markers_dict)) - 1
+                        self._marker_counter = len(
+                            list(self._markers_dict)) - 1
 
-                    self.center = tuple(list(self._markers_dict)[self._marker_counter])
+                    self.center = tuple(
+                        list(self._markers_dict)[self._marker_counter])
                     self.zoom = self.default_zoom
 
         for i in range(rows):
