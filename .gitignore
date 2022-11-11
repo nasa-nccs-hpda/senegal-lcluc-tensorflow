@@ -5,6 +5,7 @@ icesat2/
 senegal/
 *.hdf5
 *.out
+_footprints/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
