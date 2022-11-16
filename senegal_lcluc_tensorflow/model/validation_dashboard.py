@@ -3,6 +3,7 @@ import math
 import socket
 import ipysheet
 import ipyleaflet
+import numpy as np
 import geopandas as gpd
 import rioxarray as rxr
 import ipywidgets as widgets
@@ -165,12 +166,24 @@ class ValidationDashboard(ipyleaflet.Map):
             self.mask_classes = ['other', 'tree', 'crop', 'burn']
         else:
             self.mask_classes = kwargs['mask_classes']
+            
+        # Define pre-generated validations points
+        if "points_dir" not in kwargs:
+            self.points_dir = '/home/jovyan/efs/projects/3sl/validation/original_points'
+        else:
+            self.points_dir = kwargs['points_dir']
 
         # Define if validation points need to be generated
         if "gen_points" not in kwargs:
             self.gen_points = True
         else:
             self.gen_points = kwargs['gen_points']
+            
+        # Define if validation points need to be generated
+        if "n_points" not in kwargs:
+            self.n_points = 200
+        else:
+            self.n_points = kwargs['n_points']
 
         if "expected_accuracies" not in kwargs:
             self.expected_accuracies = [0.90, 0.90, 0.90, 0.90]
@@ -237,7 +250,7 @@ class ValidationDashboard(ipyleaflet.Map):
         self.center = raster_client.center()  # center Map around raster
         self.zoom = raster_client.default_zoom  # zoom to raster center
 
-    def generate_points(self, mask_filename: str):
+    def generate_points(self, mask_filename: str, n_points: int = None):
         """
         Generate points.
         """
@@ -278,18 +291,32 @@ class ValidationDashboard(ipyleaflet.Map):
         unique_counts['percent'] = percentage_counts
         unique_counts['standard_deviation'] = standard_deviation
         unique_counts = unique_counts.round(2)
+        
+        # Choose between Oloffson or static number of points
+        if n_points is not None:
+            val_total_points = n_points
+        else:
+            val_total_points = round(((
+                unique_counts['percent']
+                * unique_counts['standard_deviation']).sum()
+                / self.expected_standard_error) ** 2)
 
-        val_total_points = round(((
-            unique_counts['percent']
-            * unique_counts['standard_deviation']).sum()
-            / self.expected_standard_error) ** 2)
+        # Get the number of points per class
+        unique_counts['n_point'] = \
+            (unique_counts['percent'] * val_total_points).apply(np.floor)
+        
+        if unique_counts['n_point'].sum() < val_total_points:
+            unique_counts.at[0, 'n_point'] += \
+                val_total_points - unique_counts['n_point'].sum()
+        elif unique_counts['n_point'].sum() > val_total_points:
+            unique_counts.at[0, 'n_point'] -= \
+                unique_counts['n_point'].sum() - val_total_points
 
         for class_id, row in unique_counts.iterrows():
-            val_points = round(row['percent'] * val_total_points)
             raster_prediction = raster_prediction.drop(
                 raster_prediction[
                     raster_prediction['predicted'] == class_id].sample(
-                        n=int(row['predicted'] - val_points),
+                        n=int(row['predicted'] - row['n_point']),
                         random_state=24).index
             )
 
@@ -300,17 +327,39 @@ class ValidationDashboard(ipyleaflet.Map):
             geometry=geometry).reset_index(drop=True)
         return raster_prediction
 
-    def add_markers(self, in_raster: str, gen_points: bool = True):
+    def add_markers(
+            self,
+            in_raster: str,
+            gen_points: bool = True,
+            n_points: int = None,
+            offline: bool = False
+        ):
 
         # Extract label filename from data filename
         mask_filename = os.path.join(
             self.mask_dir, f'{Path(in_raster).stem}.{self.product_name}.tif')
-
+        
+        original_points_filename = os.path.join(
+            self.points_dir, f'{Path(in_raster).stem}.gpkg')
+        
+        # Extract output filename if None available and doing offline points
+        if self.output_filename is None or offline:
+            self.output_filename = os.path.join(
+                self.output_dir, f"{Path(in_raster).stem}.gpkg")
+            
+        # Case #1: student is already working on the points
         if not gen_points or os.path.isfile(self.output_filename):
             validation_points = self.load_gpkg(self.output_filename)
             validation_points = validation_points.to_crs(epsg=4326)
+
+        # Case #2: points have already been generated for everyone
+        elif not gen_points or os.path.isfile(original_points_filename):
+            validation_points = self.load_gpkg(original_points_filename)
+            validation_points = validation_points.to_crs(epsg=4326)
+
+        # Case #3: no points available, generate them from scratch
         else:
-            validation_points = self.generate_points(mask_filename)
+            validation_points = self.generate_points(mask_filename, n_points)
             validation_points = validation_points.drop(
                 ['predicted'], axis=1).to_crs(4326)
             validation_points['operator'] = 'other'
@@ -324,110 +373,121 @@ class ValidationDashboard(ipyleaflet.Map):
                 validation_points.to_crs(4326).drop(['geometry'], axis=1)))
         widgets.Dropdown.value.tag(sync=True)
 
-        # Iterate over each point and add them to the map
-        for index, point in validation_points.iterrows():
+        if not offline:
 
-            # get coordinates
-            coordinates = (point['geometry'].y, point['geometry'].x)
-            if point['verified'] == 'false' or not point['verified']:
-                verified_option = False
-            else:
-                verified_option = True
+            # Iterate over each point and add them to the map
+            for index, point in validation_points.iterrows():
 
-            radio_check_widget = widgets.RadioButtons(
-                options=self.validation_classes,
-                value=point['operator'],
-                layout={'width': 'max-content'},
-                description='Validation:',
-                disabled=False
-            )
+                # get coordinates
+                coordinates = (point['geometry'].y, point['geometry'].x)
+                if point['verified'] == 'false' or not point['verified']:
+                    verified_option = False
+                else:
+                    verified_option = True
 
-            radio_burn_widget = widgets.RadioButtons(
-                options=[('not-burnt', 0), ('burnt', 1)],
-                value=point['burnt'],
-                layout={'width': 'max-content'},
-                description='Burnt:',
-                disabled=False
-            )
-
-            radio_confidence_widget = widgets.RadioButtons(
-                options=[
-                    ('high-confidence', 1),
-                    ('medium-confidence', 2),
-                    ('low-confidence', 3)],
-                value=point['confidence'],
-                layout={'width': 'max-content'},
-                description='Confidence:',
-                disabled=False
-            )
-
-            point_id_widget = widgets.IntText(
-                value=index,
-                description='ID:',
-                disabled=True
-            )
-
-            checked_widget = widgets.Checkbox(
-                value=verified_option,
-                description='Verified:',
-                disabled=False
-            )
-
-            popup = widgets.VBox([
-                point_id_widget,
-                radio_check_widget,
-                radio_burn_widget,
-                radio_confidence_widget,
-                checked_widget
-            ])
-
-            marker = Marker(
-                name=str(index),
-                location=coordinates,
-                draggable=False,
-                keyboard=True,
-                popup=popup
-            )
-
-            if verified_option:
-                marker.icon = AwesomeIcon(
-                    name='check-square',
-                    marker_color='green',
-                    icon_color='black'
+                radio_check_widget = widgets.RadioButtons(
+                    options=self.validation_classes,
+                    value=point['operator'],
+                    layout={'width': 'max-content'},
+                    description='Validation:',
+                    disabled=False
                 )
 
-            cell = ipysheet.cell(index, 2, point['operator'])
-            widgets.jslink((cell, 'value'), (radio_check_widget, 'value'))
-            cell = ipysheet.cell(index, 3, point['burnt'])
-            widgets.jslink((cell, 'value'), (radio_burn_widget, 'value'))
-            cell = ipysheet.cell(index, 4, point['confidence'])
-            widgets.jslink((cell, 'value'), (radio_confidence_widget, 'value'))
-            cell = ipysheet.cell(index, 5, verified_option)
-            widgets.jslink((cell, 'value'), (checked_widget, 'value'))
+                radio_burn_widget = widgets.RadioButtons(
+                    options=[('not-burnt', 0), ('burnt', 1)],
+                    value=point['burnt'],
+                    layout={'width': 'max-content'},
+                    description='Burnt:',
+                    disabled=False
+                )
 
-            # Store the real marker object in the dictionary
-            self._markers_dict[tuple(marker.location)] = marker
+                radio_confidence_widget = widgets.RadioButtons(
+                    options=[
+                        ('high-confidence', 1),
+                        ('medium-confidence', 2),
+                        ('low-confidence', 3)],
+                    value=point['confidence'],
+                    layout={'width': 'max-content'},
+                    description='Confidence:',
+                    disabled=False
+                )
 
-            def handle_marker_on_click(*args, **kwargs):
+                point_id_widget = widgets.IntText(
+                    value=index,
+                    description='ID:',
+                    disabled=True
+                )
 
-                self._markers_dict[
-                    tuple(kwargs['coordinates'])].icon = AwesomeIcon(
+                checked_widget = widgets.Checkbox(
+                    value=verified_option,
+                    description='Verified:',
+                    disabled=False
+                )
+
+                popup = widgets.VBox([
+                    point_id_widget,
+                    radio_check_widget,
+                    radio_burn_widget,
+                    radio_confidence_widget,
+                    checked_widget
+                ])
+
+                marker = Marker(
+                    name=str(index),
+                    location=coordinates,
+                    draggable=False,
+                    keyboard=True,
+                    popup=popup
+                )
+
+                if verified_option:
+                    marker.icon = AwesomeIcon(
                         name='check-square',
                         marker_color='green',
                         icon_color='black'
-                )
+                    )
 
-                self.save_gpkg(
-                    ipysheet.to_dataframe(self._validation_sheet),
-                    self.output_filename
-                )
-            marker.on_click(handle_marker_on_click)
+                cell = ipysheet.cell(index, 2, point['operator'])
+                widgets.jslink((cell, 'value'), (radio_check_widget, 'value'))
+                cell = ipysheet.cell(index, 3, point['burnt'])
+                widgets.jslink((cell, 'value'), (radio_burn_widget, 'value'))
+                cell = ipysheet.cell(index, 4, point['confidence'])
+                widgets.jslink((cell, 'value'), (radio_confidence_widget, 'value'))
+                cell = ipysheet.cell(index, 5, verified_option)
+                widgets.jslink((cell, 'value'), (checked_widget, 'value'))
 
-        marker_cluster = MarkerCluster(
-            markers=tuple(list(self._markers_dict.values())),
-            name="validation"
+                # Store the real marker object in the dictionary
+                self._markers_dict[tuple(marker.location)] = marker
+
+                def handle_marker_on_click(*args, **kwargs):
+
+                    self._markers_dict[
+                        tuple(kwargs['coordinates'])].icon = AwesomeIcon(
+                            name='check-square',
+                            marker_color='green',
+                            icon_color='black'
+                    )
+
+                    self.save_gpkg(
+                        ipysheet.to_dataframe(self._validation_sheet),
+                        self.output_filename
+                    )
+                marker.on_click(handle_marker_on_click)
+
+            marker_cluster = MarkerCluster(
+                markers=tuple(list(self._markers_dict.values())),
+                name="validation"
+            )
+
+            # Add layer to map
+            self.add_layer(marker_cluster)
+        
+        # Save GPKG file with dataframe
+        self.save_gpkg(
+            ipysheet.to_dataframe(self._validation_sheet),
+            self.output_filename
         )
-        self.add_layer(marker_cluster)
+
         return
 
     def save_gpkg(self, df, output_filename, layer="validation"):
@@ -448,6 +508,8 @@ class ValidationDashboard(ipyleaflet.Map):
         self.raster_crs = gdf.crs
         self._marker_counter = gdf[
             'verified'][gdf['verified'] == True].last_valid_index()
+        if self._marker_counter is None:
+            self._marker_counter = -1
         return gdf
 
     def _main_toolbar(self):
@@ -592,7 +654,8 @@ class ValidationDashboard(ipyleaflet.Map):
                     # Visualize or generate markers for validation
                     self.add_markers(
                         self._selected_filename,
-                        gen_points=self.gen_points
+                        gen_points=self.gen_points,
+                        n_points=self.n_points
                     )
 
             elif change["new"] == "Reset":
