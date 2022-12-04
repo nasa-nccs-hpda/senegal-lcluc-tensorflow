@@ -98,9 +98,9 @@ inference_overlap: 0.50
 inference_treshold: 0.50
 
 # Prediction location
-# model_filename: /projects/kwessel4/nga-senegal-4class/dataset/model/90-0.11.hdf5 ## CAS+ETZ
-model_filename: /projects/kwessel4/nga-senegal-4class/dataset-ETZ/model/99-0.16.hdf5
+model_filename: /projects/kwessel4/nga-senegal-4class/dataset/model/77-0.16.hdf5 ## CAS+ETZ
+# model_filename: /home/mle35/nga-senegal-4class/dataset/model_ETZ/83-0.16.hdf5
 # model_filename: /home/mle35/nga-senegal-4class/dataset/model/48-0.16.hdf5
 inference_regex: /projects/kwessel4/allCAS/*.tif
 # inference_regex: /projects/kwessel4/ETZ_data/*.tif
-inference_save_dir: /home/mle35/nga-senegal-4class/dataset/predictions/99-0.16-4class-5ts_ETZ-mt-CAS/images
+inference_save_dir: /home/mle35/nga-senegal-4class/dataset/predictions/77-0.16-otcb-5ts_CAS-date_test/images
