@@ -6,8 +6,8 @@
 experiment_name: landcover-otcb
 experiment_type: landcover
 
-data_dir: '/scratch/mle35/nga-senegal-4class/dataset-ETZ'
-model_dir: '/scratch/mle35/nga-senegal-4class/dataset-ETZ/model/'
+data_dir: '/projects/kwessel4/nga-senegal-4class/dataset'
+model_dir: '/projects/kwessel4/nga-senegal-4class/dataset-ETZ/model/'
 
 seed: 42
 gpu_devices: 0,1,2,3

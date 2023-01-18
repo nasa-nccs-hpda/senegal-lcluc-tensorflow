@@ -100,7 +100,7 @@ inference_treshold: 0.50
 # Prediction location
 #model_filename: /projects/kwessel4/nga-senegal-4class/dataset/model/71-0.20.hdf5 ## CAS+ETZ
 # model_filename: /home/mle35/nga-senegal-4class/dataset/model_ETZ/83-0.16.hdf5
-model_filename: /home/mle35/nga-senegal-4class/dataset/model/increase_CAS_set1/50-0.19-15ts.hdf5
+model_filename: /home/mle35/nga-senegal-4class/dataset/model/increase_CAS_set1/52-0.20-20ts.hdf5
 inference_regex: /projects/kwessel4/allCAS/*.tif
 # inference_regex: /projects/kwessel4/ETZ_data/*.tif
-inference_save_dir: /scratch/mle35/nga-senegal-4class/dataset/predictions/50-0.19-otcb-10ts_CAS_increase_set1/images
+inference_save_dir: /scratch/mle35/nga-senegal-4class/dataset/predictions/52-0.20-otcb-20ts_CAS_increase_set1/images

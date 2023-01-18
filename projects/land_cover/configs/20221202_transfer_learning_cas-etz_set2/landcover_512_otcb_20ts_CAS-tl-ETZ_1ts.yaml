@@ -70,7 +70,7 @@ max_epochs: 6000
 patience: 10
 
 transfer_learning: 'feature-extraction'  #'fine-tuning'
-transfer_learning_weights: '/home/mle35/nga-senegal-4class/dataset/model/42-0.21.hdf5'
+transfer_learning_weights: '/home/mle35/nga-senegal-4class/dataset/model/increase_CAS_set1/52-0.20-20ts.hdf5'
 transfer_learning_fine_tune_at: 10
 
 model: "tfc.networks.unet.unet_batchnorm(nclass=4, input_size=(512, 512, 8),maps=[64, 128, 256, 512, 1024])"
@@ -103,8 +103,8 @@ inference_treshold: 0.50
 
 # Prediction location
 # model_filename: /projects/kwessel4/nga-senegal-4class/dataset/model/90-0.11.hdf5 ## CAS+ETZ
-model_filename: /projects/kwessel4/nga-senegal-4class/dataset-ETZ/model/56-0.14.hdf5 ## CAS
+model_filename: /home/mle35/nga-senegal-4class/dataset/model/CAS_20_set1-tl-ETZ_set2/57-0.15-cas20-tl-etz8.hdf5 ## CAS
 # model_filename: /home/mle35/nga-senegal-4class/dataset/model/48-0.16.hdf5
 # inference_regex: /projects/kwessel4/allCAS/*.tif
 inference_regex: /projects/kwessel4/ETZ_data/*.tif
-inference_save_dir: /home/mle35/nga-senegal-4class/dataset/predictions/56-0.14-4class-20TS-CAS-tl-ETZ-5ts/images
+inference_save_dir: /home/mle35/nga-senegal-4class/dataset/predictions/57-0.15-cas20-tl-etz8_set2/images
