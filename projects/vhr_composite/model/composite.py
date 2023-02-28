@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 
 from vhr_composite.model.metrics import calculate_mode
+from vhr_composite.model.metrics import calculate_alg
 
 TIME: str = "time"
 X: str = "x"
@@ -166,16 +167,61 @@ class Composite(object):
         )
         name = '{}.mode.{}'.format(variable_name, self._experiment_name)
         self._logger.info(f'Compute mode - Appending {name} to {tile_path}')
-        mode_data_array = self._make_data_array_from_mode(mode_with_band,
-                                                          coords,
-                                                          name)
+        mode_data_array = self._make_data_array(mode_with_band,
+                                                coords,
+                                                name)
 
         # Write to GTiff
         tile_raster_path = tile_path.replace('.zarr', f'{name}.tif')
         mode_data_array.rio.to_raster(tile_raster_path)
         return None
 
-    def _make_data_array_from_mode(
+    # --------------------------------------------------------------------------
+    # SKELETON FUNCTION PT. 1
+    # Change function name to fit alg
+    # Change "alg" out with whatever you're doing
+    # --------------------------------------------------------------------------
+    def calculate_algorithm_per_tile(
+            self,
+            tile_path: str,
+            tile_dataset_input: xr.Dataset = None) -> None:
+        """
+        Given a landcover zarr or dataset, calculate the mode
+        and write to GTiff
+        """
+        tile_dataset = tile_dataset_input if tile_dataset_input \
+            else xr.open_zarr(tile_path)
+        variable_name = os.path.basename(tile_path).split('.zarr')[0]
+        # Select the array without the band, transpose to time-last format
+        tile_array = tile_dataset[variable_name].sel(
+            band=BAND).transpose(Y, X, TIME)
+        output_array = self._calculate_alg(tile_array, logger=self._logger)
+        self._logger.info('Compute alg')
+        # Add the band to the mode
+        output_array_with_band = np.zeros((BAND, output_array.shape[0],
+                                           output_array.shape[1]))
+        output_array_with_band[0, :, :] = output_array
+
+        # Make the coordinates that will be used to make the mode ndarray
+        # a xr.DataArray
+        coords = dict(
+            band=tile_dataset.band,
+            y=tile_dataset.y,
+            x=tile_dataset.x,
+            spatial_ref=tile_dataset.spatial_ref,
+        )
+        name = '{}.alg.{}'.format(variable_name, self._experiment_name)
+        self._logger.info(f'Compute alg - Appending {name} to {tile_path}')
+        mode_data_array = self._make_data_array(output_array_with_band,
+                                                coords,
+                                                name)
+
+        # Write to GTiff
+        tile_raster_path = tile_path.replace('.zarr', f'{name}.tif')
+        mode_data_array.rio.to_raster(tile_raster_path)
+        return None
+
+    def _make_data_array(
             self,
             ndarray: np.ndarray,
             coords: dict,
@@ -201,3 +247,15 @@ class Composite(object):
         Object-oriented wrapper for mode calculation function.
         """
         return calculate_mode(tile_array, classes, logger=logger)
+
+    # --------------------------------------------------------------------------
+    # SKELETON FUNCTION PT. 2
+    # Change function name to fit alg
+    # Change "alg" out with whatever you're doing
+    # --------------------------------------------------------------------------
+    def _calculate_alg(self, tile_array: xr.DataArray,
+                       logger: logging.Logger = None):
+        """
+        Object-oriented wrapper for skeleton alg function
+        """
+        return calculate_alg(tile_array, logger=logger)

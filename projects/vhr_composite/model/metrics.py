@@ -23,6 +23,67 @@ SUM_NO_MODE: int = 0
 NO_DATA: int = 10
 
 
+# --------------------------------------------------------------------------
+# SKELETON FUNCTION PT. 5
+# Change function name to fit alg
+# Change "alg" out with whatever you're doin
+# --------------------------------------------------------------------------
+@nb.njit
+def _alg_product(input_array: np.ndarray) -> int:
+    """
+    reduction algorithm, takes 3d input, returns scalar
+    """
+    output_scalar = 0
+    return output_scalar
+
+
+# --------------------------------------------------------------------------
+# SKELETON FUNCTION PT. 4
+# Change function name to fit alg
+# Change "alg" out with whatever you're doing
+# --------------------------------------------------------------------------
+@nb.njit(parallel=True)
+def _fast_iterate_alg(
+        output_array: np.ndarray, input_array: np.ndarray) -> np.ndarray:
+    """
+    Iterate through first two dims of 3d host array
+    to get the mode for the z axis.
+    """
+    for y in nb.prange(input_array.shape[Y_AXIS]):
+        for x in nb.prange(input_array.shape[X_AXIS]):
+            output_array[y, x] = _alg_product(input_array[y, x, :])
+    return output_array
+
+
+# --------------------------------------------------------------------------
+# SKELETON FUNCTION PT. 3
+# Change function name to fit alg
+# Change "alg" out with whatever you're doing
+# --------------------------------------------------------------------------
+def calculate_alg(grid_cell_data_array: xr.DataArray,
+                  from_disk: bool = False,
+                  grid_cell_zarr_path: str = None,
+                  logger: logging.Logger = None) -> np.ndarray:
+    """
+    Reduction algorithm, skeleton function
+    """
+    if from_disk:
+        if not os.path.exists(grid_cell_zarr_path):
+            msg = f'{grid_cell_zarr_path} does ' + \
+                'cannot be found or does not exist.'
+            raise FileNotFoundError(msg)
+        grid_cell_data_array = xr.from_zarr(grid_cell_zarr_path)
+    grid_cell_shape = grid_cell_data_array.shape
+    output_array = np.zeros(
+        (grid_cell_shape[Y_AXIS], grid_cell_shape[X_AXIS]), dtype=HOST_DTYPE)
+    logger.info('Computing alg')
+    st = time.time()
+    output_array = _fast_iterate_alg(output_array, grid_cell_data_array)
+    et = time.time()
+    logger.info('Alg compute time {}'.format(round(et-st, 3)))
+    return output_array
+
+
 @nb.njit
 def _mode_sum_product(array: np.ndarray) -> int:
     """
@@ -45,7 +106,7 @@ def _mode_sum_product(array: np.ndarray) -> int:
 
 
 @nb.njit(parallel=True)
-def _compute_mode(mode: np.ndarray, array: np.ndarray) -> np.ndarray:
+def _fast_iterate_mode(mode: np.ndarray, array: np.ndarray) -> np.ndarray:
     """
     Iterate through first two dims of 3d host array
     to get the mode for the z axis.
@@ -97,7 +158,7 @@ def calculate_mode(grid_cell_data_array: xr.DataArray,
         (class_sums.shape[Y_AXIS], class_sums.shape[X_AXIS]), dtype=HOST_DTYPE)
     logger.info('Computing mode')
     st = time.time()
-    mode = _compute_mode(mode, class_sums)
+    mode = _fast_iterate_mode(mode, class_sums)
     et = time.time()
     logger.info('Mode compute time {}'.format(round(et-st, 3)))
     return mode
