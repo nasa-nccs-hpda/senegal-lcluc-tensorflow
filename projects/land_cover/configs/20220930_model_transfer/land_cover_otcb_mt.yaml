@@ -99,7 +99,7 @@ inference_treshold: 0.50
 
 # Prediction location
 # model_filename: /projects/kwessel4/nga-senegal-4class/dataset/model/90-0.11.hdf5 ## CAS+ETZ
-model_filename: /projects/kwessel4/nga-senegal-4class/dataset-ETZ/model/99-0.16.hdf5
+model_filename: /home/mle35/nga-senegal-4class/dataset/model_ETZ/99-0.16.hdf5
 # model_filename: /home/mle35/nga-senegal-4class/dataset/model/48-0.16.hdf5
 inference_regex: /projects/kwessel4/allCAS/*.tif
 # inference_regex: /projects/kwessel4/ETZ_data/*.tif

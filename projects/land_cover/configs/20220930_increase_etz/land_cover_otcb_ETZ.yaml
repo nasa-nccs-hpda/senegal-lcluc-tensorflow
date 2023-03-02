@@ -6,8 +6,8 @@
 experiment_name: landcover-otcb
 experiment_type: landcover
 
-data_dir: '/projects/kwessel4/nga-senegal-4class/dataset'
-model_dir: '/projects/kwessel4/nga-senegal-4class/dataset-ETZ/model/'
+data_dir: '/scratch/mle35/nga-senegal-4class/dataset'
+model_dir: '/scratch/mle35/nga-senegal-4class/dataset/model/'
 
 seed: 42
 gpu_devices: 0,1,2,3
@@ -98,9 +98,9 @@ inference_overlap: 0.50
 inference_treshold: 0.50
 
 # Prediction location
-# model_filename: /projects/kwessel4/nga-senegal-4class/dataset/model/90-0.11.hdf5 ## CAS+ETZ
-model_filename: /projects/kwessel4/nga-senegal-4class/dataset-ETZ/model/99-0.16.hdf5
-# model_filename: /home/mle35/nga-senegal-4class/dataset/model/48-0.16.hdf5
-inference_regex: /projects/kwessel4/allCAS/*.tif
-# inference_regex: /projects/kwessel4/ETZ_data/*.tif
-inference_save_dir: /home/mle35/nga-senegal-4class/dataset/predictions/99-0.16-4class-5ts_ETZ-mt-CAS/images
+#model_filename: /projects/kwessel4/nga-senegal-4class/dataset/model/71-0.20.hdf5 ## CAS+ETZ
+# model_filename: /home/mle35/nga-senegal-4class/dataset/model_ETZ/83-0.16.hdf5
+model_filename: /projects/kwessel4/nga-senegal-4class/model/increase_ETZ_set1/47-0.19-15ts.hdf5
+#inference_regex: /projects/kwessel4/allCAS/*.tif
+inference_regex: /projects/kwessel4/ETZ_data/*.tif
+inference_save_dir: /scratch/mle35/nga-senegal-4class/dataset/predictions/47-0.19-otcb-15ts_ETZ_increase_set1/images
