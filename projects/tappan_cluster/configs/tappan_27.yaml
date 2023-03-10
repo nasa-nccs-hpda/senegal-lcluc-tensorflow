@@ -1,0 +1,20 @@
+square_number: 27
+
+algorithm: kmeans
+
+input_txt_file: '/explore/nobackup/people/mwooten3/Senegal_LCLUC/selectTappan/ETZ_newTappan/Tappan27_WV-MS.txt'
+input_identifier: '-toa.tif'
+
+upper_left_x: 506974
+upper_left_y: 1621760
+window_size_x: 5000
+window_size_y: 5000
+
+clustering: False
+num_clusters: 30
+random_state: 42
+batch_size: 64
+
+output_pre_str: 'Tappan'
+
+output_dir: '/explore/nobackup/people/cssprad1/projects/3sl/code/development/kmeans_tappan/output/tappan_27'
