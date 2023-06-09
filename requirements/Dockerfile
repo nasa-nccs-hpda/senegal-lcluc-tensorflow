@@ -16,7 +16,7 @@ ENV PROJ_LIB=/usr/share/proj
 WORKDIR /opt
 
 RUN apt-get update && \
-    apt-get -y install libgsl-dev
+    apt-get -y install libgsl-dev libmuparser-dev
 
 RUN mkdir -p /opt/rsgislib_bld && \
     cd /opt/rsgislib_bld && \
