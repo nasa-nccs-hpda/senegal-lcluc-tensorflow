@@ -6,9 +6,9 @@ ENV SENEGAL_LCLUC_TF_VERSION=main
 
 RUN pip install git+https://github.com/dshean/pygeotools.git@master
 
-RUN pip install pygsl pyod cvxopt gsutil feather-format openpyxl SALib \
-    alphashape xlsxwriter black flake8 pylint pytest pytest-html coverage \
-    pytest-cov pysptools pymcr imbalanced-learn
+#RUN pip install pygsl pyod cvxopt gsutil feather-format openpyxl SALib \
+#    alphashape xlsxwriter black flake8 pylint pytest pytest-html coverage \
+#    pytest-cov pysptools pymcr imbalanced-learn
 
 ENV GDAL_DATA=/usr/share/gdal
 ENV PROJ_LIB=/usr/share/proj
