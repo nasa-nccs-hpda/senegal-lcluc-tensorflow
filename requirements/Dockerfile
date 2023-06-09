@@ -16,7 +16,8 @@ ENV PROJ_LIB=/usr/share/proj
 WORKDIR /opt
 
 RUN apt-get update && \
-    apt-get -y install libgsl-dev libmuparser-dev build-essential g++ autotools-dev libicu-dev libbz2-dev libboost-all-dev
+    apt-get -y install libgsl-dev libmuparser-dev build-essential g++ autotools-dev \
+    libicu-dev libbz2-dev libboost-all-dev libhdf5-serial-dev
 
 RUN mkdir -p /opt/rsgislib_bld && \
     cd /opt/rsgislib_bld && \
