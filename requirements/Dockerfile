@@ -15,8 +15,10 @@ ENV PROJ_LIB=/usr/share/proj
 
 WORKDIR /opt
 
-RUN apt-get update && apt-get install libgsl-dev && \
-    mkdir -p /opt/rsgislib_bld && \
+RUN apt-get update && \
+    apt-get -y install libgsl-dev
+
+RUN mkdir -p /opt/rsgislib_bld && \
     cd /opt/rsgislib_bld && \
     git clone https://github.com/remotesensinginfo/rsgislib.git && \
     cd rsgislib && \
@@ -26,9 +28,7 @@ RUN apt-get update && apt-get install libgsl-dev && \
         -DGSL_INCLUDE_DIR=/usr/include -DGSL_LIB_PATH=/usr/lib .. && \
     make -j 4 && \
     make install && \
-    cd /opt && \
-    rm -Rf rsgislib_bld && \
-    sync
+    rm -rf /opt/rsgislib_bld
 
 # RUN mamba install --yes -c au-eoed -c conda-forge python=3.10 
 # gdal - done
