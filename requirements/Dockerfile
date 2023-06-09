@@ -16,7 +16,7 @@ ENV PROJ_LIB=/usr/share/proj
 WORKDIR /opt
 
 RUN apt-get update && \
-    apt-get -y install libgsl-dev libmuparser-dev
+    apt-get -y install libgsl-dev libmuparser-dev build-essential g++ autotools-dev libicu-dev libbz2-dev libboost-all-dev
 
 RUN mkdir -p /opt/rsgislib_bld && \
     cd /opt/rsgislib_bld && \
@@ -25,7 +25,9 @@ RUN mkdir -p /opt/rsgislib_bld && \
     mkdir build && \
     cd build && \
     cmake -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_SKIP_RPATH=OFF -DGDAL_INCLUDE_DIR=/usr/include -DGDAL_LIB_PATH=/usr/lib \
-        -DGSL_INCLUDE_DIR=/usr/include -DGSL_LIB_PATH=/usr/lib .. && \
+        -DGSL_INCLUDE_DIR=/usr/include -DGSL_LIB_PATH=/usr/lib \
+        -DBOOST_INCLUDE_DIR=/usr/include -DBOOST_LIB_PATH=/usr/lib \
+        -DMUPARSER_INCLUDE_DIR=/usr/include -DMUPARSER_LIB_PATH=/usr/lib .. && \
     make -j 4 && \
     make install && \
     rm -rf /opt/rsgislib_bld
