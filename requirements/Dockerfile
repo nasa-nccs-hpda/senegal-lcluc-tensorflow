@@ -15,13 +15,15 @@ ENV PROJ_LIB=/usr/share/proj
 
 WORKDIR /opt
 
-RUN mkdir -p /opt/rsgislib_bld && \
+RUN apt-get update && apt-get install libgsl-dev && \
+    mkdir -p /opt/rsgislib_bld && \
     cd /opt/rsgislib_bld && \
     git clone https://github.com/remotesensinginfo/rsgislib.git && \
     cd rsgislib && \
     mkdir build && \
     cd build && \
-    cmake -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_SKIP_RPATH=OFF -DGDAL_INCLUDE_DIR=/usr/include -DGDAL_LIB_PATH=/usr/lib .. && \
+    cmake -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_SKIP_RPATH=OFF -DGDAL_INCLUDE_DIR=/usr/include -DGDAL_LIB_PATH=/usr/lib \
+        -DGSL_INCLUDE_DIR=/usr/include -DGSL_LIB_PATH=/usr/lib .. && \
     make -j 4 && \
     make install && \
     cd /opt && \
