@@ -35,24 +35,28 @@ RUN cd /opt \
     && cd .. \
     && rm -rf /opt/kealib-kealib-${KEA_VERSION} \
     && for i in /build_thirdparty/usr/lib/*; do strip -s $i 2>/dev/null || /bin/true; done \
-    && for i in /build_thirdparty/usr/bin/*; do strip -s $i 2>/dev/null || /bin/true; done
+    && for i in /build_thirdparty/usr/bin/*; do strip -s $i 2>/dev/null || /bin/true; done \
+    && cp /build_thirdparty/usr/lib/* /usr/lib \
+    && cp -a /build_thirdparty/usr/include/libkea /usr/include \
+    && cp /build_thirdparty/usr/bin/* /usr/bin \
+    && rm -rf /build_thirdparty
 
-#RUN mkdir -p /opt/rsgislib_bld && \
-#    cd /opt/rsgislib_bld && \
-#    git clone https://github.com/remotesensinginfo/rsgislib.git && \
-#    cd rsgislib && \
-#    mkdir build && \
-#    cd build && \
-#    cmake -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_SKIP_RPATH=OFF \
-#        -DGDAL_INCLUDE_DIR=/usr/include -DGDAL_LIB_PATH=/usr/lib \
-#        -DGSL_INCLUDE_DIR=/usr/include -DGSL_LIB_PATH=/usr/lib \
-#        -DBOOST_INCLUDE_DIR=/usr/include -DBOOST_LIB_PATH=/usr/lib \
-#        -DMUPARSER_INCLUDE_DIR=/usr/include -DMUPARSER_LIB_PATH=/usr/lib \
-#        -DHDF5_INCLUDE_DIR=/usr/include/hdf5/serial -DHDF5_LIB_PATH=/usr/lib/x86_64-linux-gnu/hdf5/serial \
-#        -DKEA_INCLUDE_DIR=/opt/miniconda/include -DKEA_LIB_PATH=/opt/miniconda/lib .. && \
-#    make -j 4 && \
-#    make install && \
-#    rm -rf /opt/rsgislib_bld
+RUN mkdir -p /opt/rsgislib_bld && \
+    cd /opt/rsgislib_bld && \
+    git clone https://github.com/remotesensinginfo/rsgislib.git && \
+    cd rsgislib && \
+    mkdir build && \
+    cd build && \
+    cmake -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_SKIP_RPATH=OFF \
+        -DGDAL_INCLUDE_DIR=/usr/include -DGDAL_LIB_PATH=/usr/lib \
+        -DGSL_INCLUDE_DIR=/usr/include -DGSL_LIB_PATH=/usr/lib \
+        -DBOOST_INCLUDE_DIR=/usr/include -DBOOST_LIB_PATH=/usr/lib \
+        -DMUPARSER_INCLUDE_DIR=/usr/include -DMUPARSER_LIB_PATH=/usr/lib \
+        -DHDF5_INCLUDE_DIR=/usr/include/hdf5/serial -DHDF5_LIB_PATH=/usr/lib/x86_64-linux-gnu/hdf5/serial \
+        -DKEA_INCLUDE_DIR=/usr/include/libkea -DKEA_LIB_PATH=/usr/lib .. && \
+    make -j 4 && \
+    make install && \
+    rm -rf /opt/rsgislib_bld
 
 # RUN mamba install --yes -c au-eoed -c conda-forge python=3.10 
 # gdal - done
