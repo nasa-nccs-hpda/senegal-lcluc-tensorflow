@@ -17,23 +17,42 @@ WORKDIR /opt
 
 RUN apt-get update && \
     apt-get -y install libgsl-dev libmuparser-dev build-essential g++ autotools-dev \
-    libicu-dev libbz2-dev libboost-all-dev libhdf5-serial-dev libhdf5-dev
+    libicu-dev libbz2-dev libboost-all-dev libhdf5-serial-dev libhdf5-dev libboost-dev \
+    libboost-system-dev liblog4cplus-dev libssl-dev
 
-RUN mkdir -p /opt/rsgislib_bld && \
-    cd /opt/rsgislib_bld && \
-    git clone https://github.com/remotesensinginfo/rsgislib.git && \
-    cd rsgislib && \
-    mkdir build && \
-    cd build && \
-    cmake -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_SKIP_RPATH=OFF \
-        -DGDAL_INCLUDE_DIR=/usr/include -DGDAL_LIB_PATH=/usr/lib \
-        -DGSL_INCLUDE_DIR=/usr/include -DGSL_LIB_PATH=/usr/lib \
-        -DBOOST_INCLUDE_DIR=/usr/include -DBOOST_LIB_PATH=/usr/lib \
-        -DMUPARSER_INCLUDE_DIR=/usr/include -DMUPARSER_LIB_PATH=/usr/lib \
-        -DHDF5_INCLUDE_DIR=/usr/include/hdf5/serial -DHDF5_LIB_PATH=/usr/lib/x86_64-linux-gnu/hdf5/serial .. && \
-    make -j 4 && \
-    make install && \
-    rm -rf /opt/rsgislib_bld
+ARG KEA_VERSION=1.5.0
+RUN cd /opt \
+    && wget -q https://github.com/ubarsc/kealib/archive/kealib-${KEA_VERSION}.zip \
+    && unzip -q kealib-${KEA_VERSION}.zip \
+    && rm -f kealib-${KEA_VERSION}.zip \
+    && cd kealib-kealib-${KEA_VERSION} \
+    && cmake . -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr -DHDF5_INCLUDE_DIR=/usr/include/hdf5/serial \
+        -DHDF5_LIB_PATH=/usr/lib/x86_64-linux-gnu/hdf5/serial -DLIBKEA_WITH_GDAL=OFF \
+    && make -j$(nproc) \
+    && make install DESTDIR="/build_thirdparty" \
+    && make install \
+    && cd .. \
+    && rm -rf /opt/kealib-kealib-${KEA_VERSION} \
+    && for i in /build_thirdparty/usr/lib/*; do strip -s $i 2>/dev/null || /bin/true; done \
+    && for i in /build_thirdparty/usr/bin/*; do strip -s $i 2>/dev/null || /bin/true; done
+
+#RUN mkdir -p /opt/rsgislib_bld && \
+#    cd /opt/rsgislib_bld && \
+#    git clone https://github.com/remotesensinginfo/rsgislib.git && \
+#    cd rsgislib && \
+#    mkdir build && \
+#    cd build && \
+#    cmake -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_SKIP_RPATH=OFF \
+#        -DGDAL_INCLUDE_DIR=/usr/include -DGDAL_LIB_PATH=/usr/lib \
+#        -DGSL_INCLUDE_DIR=/usr/include -DGSL_LIB_PATH=/usr/lib \
+#        -DBOOST_INCLUDE_DIR=/usr/include -DBOOST_LIB_PATH=/usr/lib \
+#        -DMUPARSER_INCLUDE_DIR=/usr/include -DMUPARSER_LIB_PATH=/usr/lib \
+#        -DHDF5_INCLUDE_DIR=/usr/include/hdf5/serial -DHDF5_LIB_PATH=/usr/lib/x86_64-linux-gnu/hdf5/serial \
+#        -DKEA_INCLUDE_DIR=/opt/miniconda/include -DKEA_LIB_PATH=/opt/miniconda/lib .. && \
+#    make -j 4 && \
+#    make install && \
+#    rm -rf /opt/rsgislib_bld
 
 # RUN mamba install --yes -c au-eoed -c conda-forge python=3.10 
 # gdal - done
