@@ -1,3 +1,5 @@
+FROM osgeo/gdal:ubuntu-full-3.6.3 AS builder
+
 FROM nasanccs/tensorflow-caney:latest
 LABEL maintainer="jordan.a.caraballo-vega@nasa.gov"
 
@@ -11,35 +13,47 @@ RUN pip install git+https://github.com/dshean/pygeotools.git@master
 #    pytest-cov pysptools pymcr imbalanced-learn
 
 ENV GDAL_DATA=/usr/share/gdal
-ENV PROJ_LIB=/usr/share/proj
+ENV PROJ_LIB=/usr/local/share/proj
 
 WORKDIR /opt
 
 RUN apt-get update && \
     apt-get -y install libgsl-dev libmuparser-dev build-essential g++ autotools-dev \
-    libicu-dev libbz2-dev libboost-all-dev libhdf5-serial-dev libhdf5-dev libboost-dev \
+    libicu-dev libbz2-dev libboost-all-dev libboost-dev \
     libboost-system-dev liblog4cplus-dev libssl-dev
 
-ARG KEA_VERSION=1.5.0
-RUN cd /opt \
-    && wget -q https://github.com/ubarsc/kealib/archive/kealib-${KEA_VERSION}.zip \
-    && unzip -q kealib-${KEA_VERSION}.zip \
-    && rm -f kealib-${KEA_VERSION}.zip \
-    && cd kealib-kealib-${KEA_VERSION} \
-    && cmake . -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX=/usr -DHDF5_INCLUDE_DIR=/usr/include/hdf5/serial \
-        -DHDF5_LIB_PATH=/usr/lib/x86_64-linux-gnu/hdf5/serial -DLIBKEA_WITH_GDAL=OFF \
-    && make -j$(nproc) \
-    && make install DESTDIR="/build_thirdparty" \
-    && make install \
-    && cd .. \
-    && rm -rf /opt/kealib-kealib-${KEA_VERSION} \
-    && for i in /build_thirdparty/usr/lib/*; do strip -s $i 2>/dev/null || /bin/true; done \
-    && for i in /build_thirdparty/usr/bin/*; do strip -s $i 2>/dev/null || /bin/true; done \
-    && cp /build_thirdparty/usr/lib/* /usr/lib \
-    && cp -a /build_thirdparty/usr/include/libkea /usr/include \
-    && cp /build_thirdparty/usr/bin/* /usr/bin \
-    && rm -rf /build_thirdparty
+COPY --from=builder  /usr/ /usr/
+COPY --from=builder  /usr/local/share/proj/ /usr/local/share/proj/
+COPY --from=builder  /usr/local/share/proj/ /usr/local/share/proj/
+COPY --from=builder  /usr/local/include/ /usr/local/include/
+COPY --from=builder  /usr/local/bin/ /usr/local/bin/
+COPY --from=builder  /usr/local/lib/ /usr/local/lib/
+
+COPY --from=builder  /usr/share/java /usr/share/java
+COPY --from=builder  /usr/share/gdal/ /usr/share/gdal/
+COPY --from=builder  /usr/include/ /usr/include/
+COPY --from=builder  /usr/ /usr/
+
+#ARG KEA_VERSION=1.5.0
+#RUN cd /opt \
+#    && wget -q https://github.com/ubarsc/kealib/archive/kealib-${KEA_VERSION}.zip \
+#    && unzip -q kealib-${KEA_VERSION}.zip \
+#    && rm -f kealib-${KEA_VERSION}.zip \
+#    && cd kealib-kealib-${KEA_VERSION} \
+#    && cmake . -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release \
+#        -DCMAKE_INSTALL_PREFIX=/usr -DHDF5_INCLUDE_DIR=/usr/include/hdf5/serial \
+#        -DHDF5_LIB_PATH=/usr/lib/x86_64-linux-gnu/hdf5/serial -DLIBKEA_WITH_GDAL=OFF \
+#    && make -j$(nproc) \
+#    && make install DESTDIR="/build_thirdparty" \
+#    && make install \
+#    && cd .. \
+#    && rm -rf /opt/kealib-kealib-${KEA_VERSION} \
+#    && for i in /build_thirdparty/usr/lib/*; do strip -s $i 2>/dev/null || /bin/true; done \
+#    && for i in /build_thirdparty/usr/bin/*; do strip -s $i 2>/dev/null || /bin/true; done \
+#    && cp /build_thirdparty/usr/lib/* /usr/lib \
+#    && cp -a /build_thirdparty/usr/include/libkea /usr/include \
+#    && cp /build_thirdparty/usr/bin/* /usr/bin \
+#    && rm -rf /build_thirdparty
 
 RUN mkdir -p /opt/rsgislib_bld && \
     cd /opt/rsgislib_bld && \
