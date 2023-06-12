@@ -1,38 +1,40 @@
 FROM osgeo/gdal:ubuntu-full-3.6.3 AS builder
 
-FROM nasanccs/tensorflow-caney:latest
+#FROM nasanccs/tensorflow-caney:latest
+FROM nasanccs/senegal-lcluc-tensorflow:latest
+
 LABEL maintainer="jordan.a.caraballo-vega@nasa.gov"
 
-ENV TFC_VERSION=0.1.1
-ENV SENEGAL_LCLUC_TF_VERSION=main
+#ENV TFC_VERSION=0.1.1
+#ENV SENEGAL_LCLUC_TF_VERSION=main
 
-RUN pip install git+https://github.com/dshean/pygeotools.git@master
+#RUN pip install git+https://github.com/dshean/pygeotools.git@master
 
 #RUN pip install pygsl pyod cvxopt gsutil feather-format openpyxl SALib \
 #    alphashape xlsxwriter black flake8 pylint pytest pytest-html coverage \
 #    pytest-cov pysptools pymcr imbalanced-learn
 
-ENV GDAL_DATA=/usr/share/gdal
-ENV PROJ_LIB=/usr/local/share/proj
+#ENV GDAL_DATA=/usr/share/gdal
+#ENV PROJ_LIB=/usr/local/share/proj
 
-WORKDIR /opt
+#WORKDIR /opt
 
-RUN apt-get update && \
-    apt-get -y install libgsl-dev libmuparser-dev build-essential g++ autotools-dev \
-    libicu-dev libbz2-dev libboost-all-dev libboost-dev \
-    libboost-system-dev liblog4cplus-dev libssl-dev
+#RUN apt-get update && \
+#    apt-get -y install libgsl-dev libmuparser-dev build-essential g++ autotools-dev \
+#    libicu-dev libbz2-dev libboost-all-dev libboost-dev \
+#    libboost-system-dev liblog4cplus-dev libssl-dev
 
-COPY --from=builder  /usr/ /usr/
-COPY --from=builder  /usr/local/share/proj/ /usr/local/share/proj/
-COPY --from=builder  /usr/local/share/proj/ /usr/local/share/proj/
-COPY --from=builder  /usr/local/include/ /usr/local/include/
-COPY --from=builder  /usr/local/bin/ /usr/local/bin/
-COPY --from=builder  /usr/local/lib/ /usr/local/lib/
+#COPY --from=builder  /usr/ /usr/
+#COPY --from=builder  /usr/local/share/proj/ /usr/local/share/proj/
+#COPY --from=builder  /usr/local/share/proj/ /usr/local/share/proj/
+#COPY --from=builder  /usr/local/include/ /usr/local/include/
+#COPY --from=builder  /usr/local/bin/ /usr/local/bin/
+#COPY --from=builder  /usr/local/lib/ /usr/local/lib/
 
-COPY --from=builder  /usr/share/java /usr/share/java
-COPY --from=builder  /usr/share/gdal/ /usr/share/gdal/
-COPY --from=builder  /usr/include/ /usr/include/
-COPY --from=builder  /usr/ /usr/
+#COPY --from=builder  /usr/share/java /usr/share/java
+#COPY --from=builder  /usr/share/gdal/ /usr/share/gdal/
+#COPY --from=builder  /usr/include/ /usr/include/
+#COPY --from=builder  /usr/ /usr/
 
 #ARG KEA_VERSION=1.5.0
 #RUN cd /opt \
@@ -55,22 +57,22 @@ COPY --from=builder  /usr/ /usr/
 #    && cp /build_thirdparty/usr/bin/* /usr/bin \
 #    && rm -rf /build_thirdparty
 
-#RUN mkdir -p /opt/rsgislib_bld && \
-#    cd /opt/rsgislib_bld && \
-#    git clone https://github.com/remotesensinginfo/rsgislib.git && \
-#    cd rsgislib && \
-#    mkdir build && \
-#    cd build && \
-#    cmake -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_SKIP_RPATH=OFF \
-#        -DGDAL_INCLUDE_DIR=/usr/include -DGDAL_LIB_PATH=/usr/lib \
-#        -DGSL_INCLUDE_DIR=/usr/include -DGSL_LIB_PATH=/usr/lib \
-#        -DBOOST_INCLUDE_DIR=/usr/include -DBOOST_LIB_PATH=/usr/lib \
-#        -DMUPARSER_INCLUDE_DIR=/usr/include -DMUPARSER_LIB_PATH=/usr/lib \
-#        -DHDF5_INCLUDE_DIR=/usr/include/hdf5/serial -DHDF5_LIB_PATH=/usr/lib/x86_64-linux-gnu/hdf5/serial \
-#        -DKEA_INCLUDE_DIR=/usr/include/libkea -DKEA_LIB_PATH=/usr/lib .. && \
-#    make -j 4 && \
-#    make install && \
-#    rm -rf /opt/rsgislib_bld
+RUN mkdir -p /opt/rsgislib_bld && \
+    cd /opt/rsgislib_bld && \
+    git clone https://github.com/remotesensinginfo/rsgislib.git && \
+    cd rsgislib && \
+    mkdir build && \
+    cd build && \
+    cmake -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_SKIP_RPATH=OFF \
+        -DGDAL_INCLUDE_DIR=/usr/include -DGDAL_LIB_PATH=/usr/lib \
+        -DGSL_INCLUDE_DIR=/usr/include -DGSL_LIB_PATH=/usr/lib \
+        -DBOOST_INCLUDE_DIR=/usr/include -DBOOST_LIB_PATH=/usr/lib \
+        -DMUPARSER_INCLUDE_DIR=/usr/include -DMUPARSER_LIB_PATH=/usr/lib \
+        -DHDF5_INCLUDE_DIR=/usr/include/hdf5/serial -DHDF5_LIB_PATH=/usr/lib/x86_64-linux-gnu/hdf5/serial \
+        -DKEA_INCLUDE_DIR=/usr/include/libkea -DKEA_LIB_PATH=/usr/lib .. && \
+    make -j 4 && \
+    make install && \
+    rm -rf /opt/rsgislib_bld
 
 # RUN mamba install --yes -c au-eoed -c conda-forge python=3.10 
 # gdal - done
