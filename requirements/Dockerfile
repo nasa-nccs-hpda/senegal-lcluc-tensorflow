@@ -186,7 +186,7 @@ FROM $BASE_IMAGE as builder
 # Derived from osgeo/proj by Howard Butler <howard@hobu.co>
 LABEL maintainer="Even Rouault <even.rouault@spatialys.com>"
 
-ARG TARGET_ARCH=x86_64
+ARG TARGET_ARCH=
 RUN echo ${TARGET_ARCH}
 COPY ./requirements/bh-set-envvars.sh /buildscripts/bh-set-envvars.sh
 
