@@ -188,7 +188,7 @@ LABEL maintainer="Even Rouault <even.rouault@spatialys.com>"
 
 ARG TARGET_ARCH=x86_64
 RUN echo ${TARGET_ARCH}
-COPY ./bh-set-envvars.sh /buildscripts/bh-set-envvars.sh
+COPY ./requirements/bh-set-envvars.sh /buildscripts/bh-set-envvars.sh
 
 RUN . /buildscripts/bh-set-envvars.sh \
     && if test "${TARGET_ARCH}" != ""; then \
@@ -423,7 +423,7 @@ ARG WITH_DEBUG_SYMBOLS=no
 # Refresh grids
 ARG PROJ_DATUMGRID_LATEST_LAST_MODIFIED
 ARG PROJ_INSTALL_PREFIX=/usr/local
-COPY ./bh-proj.sh /buildscripts/bh-proj.sh
+COPY ./requirements/bh-proj.sh /buildscripts/bh-proj.sh
 # We build PROJ a first time, just to build the projsync utility if grids need
 # to be refreshed. We will rebuild just afterwards, but depending on the
 # PROJ_VERSION argument
@@ -447,7 +447,7 @@ ARG GDAL_REPOSITORY=OSGeo/gdal
 
 # Build GDAL
 
-COPY ./bh-gdal.sh /buildscripts/bh-gdal.sh
+COPY ./requirements/bh-gdal.sh /buildscripts/bh-gdal.sh
 RUN . /buildscripts/bh-set-envvars.sh \
     && /buildscripts/bh-gdal.sh
 
