@@ -57,6 +57,8 @@ LABEL maintainer="jordan.a.caraballo-vega@nasa.gov"
 #    && cp /build_thirdparty/usr/bin/* /usr/bin \
 #    && rm -rf /build_thirdparty
 
+RUN pip install GDAL==`ogrinfo --version | grep -Eo '[0-9]\.[0-9]\.[0-9]+'` \
+
 RUN mkdir -p /opt/rsgislib_bld && \
     cd /opt/rsgislib_bld && \
     git clone https://github.com/remotesensinginfo/rsgislib.git && \
