@@ -177,9 +177,16 @@
 # This file is available at the option of the licensee under:
 # Public domain
 # or licensed under MIT (LICENSE.TXT) Copyright 2019 Even Rouault <even.rouault@spatialys.com>
+ARG TF_VER=tf2
+ARG VERSION_DATE=23.01
+ARG FROM_IMAGE=nvcr.io/nvidia/tensorflow
 
-ARG BASE_IMAGE=ubuntu:22.04
-ARG TARGET_BASE_IMAGE=ubuntu:22.04
+# Import RAPIDS container as the BASE Image (cuda base image)
+ARG BASE_IMAGE=${FROM_IMAGE}:${VERSION_DATE}-${TF_VER}-py3
+ARG TARGET_BASE_IMAGE=${FROM_IMAGE}:${VERSION_DATE}-${TF_VER}-py3
+
+#ARG BASE_IMAGE=ubuntu:22.04
+#ARG TARGET_BASE_IMAGE=ubuntu:22.04
 
 FROM $BASE_IMAGE as builder
 
@@ -296,3 +303,157 @@ RUN . /buildscripts/bh-set-envvars.sh \
     && rm -rf mongocxx \
     && for i in /build_thirdparty/usr/lib/${GCC_ARCH}-linux-gnu/*; do strip -s $i 2>/dev/null || /bin/true; done \
     && for i in /build_thirdparty/usr/bin/*; do strip -s $i 2>/dev/null || /bin/true; done
+
+# Build tiledb
+ARG TILEDB_VERSION=2.15.3
+RUN . /buildscripts/bh-set-envvars.sh \
+    && mkdir tiledb \
+    && wget -q https://github.com/TileDB-Inc/TileDB/archive/${TILEDB_VERSION}.tar.gz -O - \
+        | tar xz -C tiledb --strip-components=1 \
+    && cd tiledb \
+    && mkdir build_cmake \
+    && cd build_cmake \
+    && ../bootstrap --prefix=/usr --disable-werror \
+    && make -j$(nproc) \
+    && make install-tiledb DESTDIR="/build_thirdparty" \
+    && make install-tiledb \
+    && cd ../.. \
+    && rm -rf tiledb \
+    && for i in /build_thirdparty/usr/lib/${GCC_ARCH}-linux-gnu/*; do strip -s $i 2>/dev/null || /bin/true; done \
+    && for i in /build_thirdparty/usr/bin/*; do strip -s $i 2>/dev/null || /bin/true; done
+
+# Build openjpeg
+ARG OPENJPEG_VERSION=
+RUN . /buildscripts/bh-set-envvars.sh \
+    && if test "${OPENJPEG_VERSION}" != ""; then ( \
+    wget -q https://github.com/uclouvain/openjpeg/archive/v${OPENJPEG_VERSION}.tar.gz \
+    && tar xzf v${OPENJPEG_VERSION}.tar.gz \
+    && rm -f v${OPENJPEG_VERSION}.tar.gz \
+    && cd openjpeg-${OPENJPEG_VERSION} \
+    && cmake . -DBUILD_SHARED_LIBS=ON  -DBUILD_STATIC_LIBS=OFF -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+    && make -j$(nproc) \
+    && make install \
+    && mkdir -p /build_thirdparty/usr/lib/${GCC_ARCH}-linux-gnu \
+    && rm -f /usr/lib/${GCC_ARCH}-linux-gnu/libopenjp2.so* \
+    && mv /usr/lib/libopenjp2.so* /usr/lib/${GCC_ARCH}-linux-gnu \
+    && cp -P /usr/lib/${GCC_ARCH}-linux-gnu/libopenjp2.so* /build_thirdparty/usr/lib/${GCC_ARCH}-linux-gnu \
+    && for i in /build_thirdparty/usr/lib/${GCC_ARCH}-linux-gnu/*; do strip -s $i 2>/dev/null || /bin/true; done \
+    && cd .. \
+    && rm -rf openjpeg-${OPENJPEG_VERSION} \
+    ); fi
+
+#Build File Geodatabase
+
+ARG WITH_FILEGDB=
+RUN . /buildscripts/bh-set-envvars.sh \
+  && if echo "$WITH_FILEGDB" | grep -Eiq "^(y(es)?|1|true)$"  ; then ( \
+  wget -q https://github.com/Esri/file-geodatabase-api/raw/master/FileGDB_API_1.5.2/FileGDB_API-RHEL7-64gcc83.tar.gz \
+  && tar -xzf FileGDB_API-RHEL7-64gcc83.tar.gz \
+  && chown -R root:root FileGDB_API-RHEL7-64gcc83 \
+  && mv FileGDB_API-RHEL7-64gcc83 /usr/local/FileGDB_API \
+  && rm -rf /usr/local/FileGDB_API/lib/libstdc++* \
+  && cp /usr/local/FileGDB_API/lib/* /build_thirdparty/usr/lib/x86_64-linux-gnu \
+  && cp /usr/local/FileGDB_API/include/* /usr/include \
+  && rm -rf FileGDB_API-RHEL7-64gcc83.tar.gz \
+  ) ; fi
+
+# Build libqb3
+RUN . /buildscripts/bh-set-envvars.sh \
+    && git clone https://github.com/lucianpls/QB3.git \
+    && cd QB3/QB3lib \
+    && mkdir build \
+    && cd build \
+    && cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. \
+    && make -j$(nproc) \
+    && make -j$(nproc) install \
+    && make install DESTDIR="/build_thirdparty" \
+    && cd ../../.. \
+    && rm -rf QB3
+
+ARG WITH_PDFIUM=yes
+RUN if echo "$WITH_PDFIUM" | grep -Eiq "^(y(es)?|1|true)$"  ; then ( \
+  wget -q https://github.com/rouault/pdfium_build_gdal_3_7/releases/download/pdfium_5461_v1/install-ubuntu2004-rev5461.tar.gz \
+  && tar -xzf install-ubuntu2004-rev5461.tar.gz \
+  && chown -R root:root install \
+  && mv install/lib/* /usr/lib/ \
+  && mv install/include/* /usr/include/ \
+  && rm -rf install-ubuntu2004-rev5461.tar.gz install \
+  && apt-get update -y \
+  && apt-get install -y --fix-missing --no-install-recommends liblcms2-dev${APT_ARCH_SUFFIX} \
+  && rm -rf /var/lib/apt/lists/* \
+  ) ; fi
+
+# Build libjxl
+RUN . /buildscripts/bh-set-envvars.sh \
+    && apt-get update -y \
+    && apt-get install -y --fix-missing --no-install-recommends libgflags-dev${APT_ARCH_SUFFIX} \
+    && git clone https://github.com/libjxl/libjxl.git --recursive \
+    && cd libjxl \
+    && mkdir build \
+    && cd build \
+    && cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DJPEGXL_ENABLE_TOOLS=OFF -DJPEGXL_ENABLE_BENCHMARK=OFF .. \
+    && make -j$(nproc) \
+    && make -j$(nproc) install \
+    && make install DESTDIR="/build_thirdparty" \
+    && rm -f /lib/${GCC_ARCH}-linux-gnu/libjxl*.a \
+    && rm -f /build_thirdparty/lib/${GCC_ARCH}-linux-gnu/libjxl*.a \
+    && cd ../.. \
+    && rm -rf libjxl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Arrow C++
+ARG ARROW_VERSION=11.0.0-1
+# ARROW_SOVERSION to be updated in the "Build final image" section too
+ARG ARROW_SOVERSION=1100
+RUN . /buildscripts/bh-set-envvars.sh \
+    && apt-get update -y \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y -V ca-certificates lsb-release wget \
+    && wget https://apache.jfrog.io/artifactory/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y -V ./apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb \
+    && apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y -V libarrow${ARROW_SOVERSION}${APT_ARCH_SUFFIX} \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y -V libparquet${ARROW_SOVERSION}${APT_ARCH_SUFFIX} \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y -V libarrow-dataset${ARROW_SOVERSION}${APT_ARCH_SUFFIX} \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y -V libarrow-dev${APT_ARCH_SUFFIX}=${ARROW_VERSION} \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y -V libparquet-dev${APT_ARCH_SUFFIX}=${ARROW_VERSION} \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y -V libarrow-dataset-dev${APT_ARCH_SUFFIX}=${ARROW_VERSION} \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update -y \
+    && apt-get install -y --fix-missing --no-install-recommends rsync ccache \
+    && rm -rf /var/lib/apt/lists/*
+ARG RSYNC_REMOTE
+
+ARG WITH_DEBUG_SYMBOLS=no
+
+# Refresh grids
+ARG PROJ_DATUMGRID_LATEST_LAST_MODIFIED
+ARG PROJ_INSTALL_PREFIX=/usr/local
+COPY ./requirements/bh-proj.sh /buildscripts/bh-proj.sh
+# We build PROJ a first time, just to build the projsync utility if grids need
+# to be refreshed. We will rebuild just afterwards, but depending on the
+# PROJ_VERSION argument
+# We want 2 separate steps for incremental builds where grids are refreshed
+# only when the content of cdn.proj.org has changed, independently if PROJ master
+# itself has changed.
+RUN . /buildscripts/bh-set-envvars.sh \
+    && DESTDIR=/build_tmp_proj /buildscripts/bh-proj.sh \
+     && LD_LIBRARY_PATH=/build_tmp_proj/usr/local/lib /build_tmp_proj/usr/local/bin/projsync --target-dir /tmp/proj_grids --all \
+     && rm -rf /build_tmp_proj
+
+# Build PROJ
+ARG PROJ_VERSION=master
+RUN . /buildscripts/bh-set-envvars.sh \
+    && /buildscripts/bh-proj.sh
+
+ARG GDAL_VERSION=master
+ARG GDAL_RELEASE_DATE
+ARG GDAL_BUILD_IS_RELEASE
+ARG GDAL_REPOSITORY=OSGeo/gdal
+
+# Build GDAL
+
+COPY ./requirements/bh-gdal.sh /buildscripts/bh-gdal.sh
+RUN . /buildscripts/bh-set-envvars.sh \
+    && /buildscripts/bh-gdal.sh
