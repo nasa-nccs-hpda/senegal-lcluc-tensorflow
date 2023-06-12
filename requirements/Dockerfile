@@ -278,3 +278,21 @@ RUN . /buildscripts/bh-set-envvars.sh \
     && rm /build_thirdparty/usr/lib/${GCC_ARCH}-linux-gnu/*.a \
     && for i in /build_thirdparty/usr/lib/${GCC_ARCH}-linux-gnu/*; do strip -s $i 2>/dev/null || /bin/true; done \
     && for i in /build_thirdparty/usr/bin/*; do strip -s $i 2>/dev/null || /bin/true; done
+
+# Build mongocxx
+ARG MONGOCXX_VERSION=3.7.0
+RUN . /buildscripts/bh-set-envvars.sh \
+    && mkdir mongocxx \
+    && wget -q https://github.com/mongodb/mongo-cxx-driver/archive/r${MONGOCXX_VERSION}.tar.gz -O - \
+        | tar xz -C mongocxx --strip-components=1 \
+    && cd mongocxx \
+    && mkdir build_cmake \
+    && cd build_cmake \
+    && cmake .. -DCMAKE_INSTALL_PREFIX=/usr -DBSONCXX_POLY_USE_BOOST=ON -DMONGOCXX_ENABLE_SLOW_TESTS=NO -DCMAKE_BUILD_TYPE=Release -DBUILD_VERSION=${MONGOCXX_VERSION} \
+    && make -j$(nproc) \
+    && make install DESTDIR="/build_thirdparty" \
+    && make install \
+    && cd ../.. \
+    && rm -rf mongocxx \
+    && for i in /build_thirdparty/usr/lib/${GCC_ARCH}-linux-gnu/*; do strip -s $i 2>/dev/null || /bin/true; done \
+    && for i in /build_thirdparty/usr/bin/*; do strip -s $i 2>/dev/null || /bin/true; done
