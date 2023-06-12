@@ -224,6 +224,7 @@ RUN . /buildscripts/bh-set-envvars.sh \
             git make cmake wget unzip libtool automake \
             zlib1g-dev libsqlite3-dev pkg-config sqlite3 libcurl4-openssl-dev \
             libtiff5-dev \
+    && pip install cmake \
     && rm -rf /var/lib/apt/lists/*
 
 ARG JAVA_VERSION=17
