@@ -224,7 +224,8 @@ RUN . /buildscripts/bh-set-envvars.sh \
             git make cmake wget unzip libtool automake \
             zlib1g-dev libsqlite3-dev pkg-config sqlite3 libcurl4-openssl-dev \
             libtiff5-dev \
-    && pip install cmake \
+    && wget -qO- "https://cmake.org/files/v3.26/cmake-3.26.4-Linux-x86_64.tar.gz" | \
+    tar --strip-components=1 -xz -C /usr/local \
     && rm -rf /var/lib/apt/lists/*
 
 ARG JAVA_VERSION=17
