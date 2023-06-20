@@ -224,7 +224,8 @@ RUN . /buildscripts/bh-set-envvars.sh \
             build-essential ca-certificates \
             git make cmake wget unzip libtool automake \
             zlib1g-dev libsqlite3-dev pkg-config sqlite3 libcurl4-openssl-dev \
-            libtiff5-dev libspdlog-dev libfmt-dev \
+            libtiff5-dev
+    # libspdlog-dev libfmt-dev \
     && apt-get remove -y cmake \
     && apt-get purge --auto-remove -y cmake \
     && wget https://github.com/Kitware/CMake/releases/download/v3.24.1/cmake-3.24.1-Linux-x86_64.sh \
