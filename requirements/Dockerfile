@@ -259,7 +259,8 @@ RUN . /buildscripts/bh-set-envvars.sh \
     && rm -rf /var/lib/apt/lists/*
 
 # Build tiledb
-ARG TILEDB_VERSION=2.15.3
+#ARG TILEDB_VERSION=2.15.3
+ARG TILEDB_VERSION=1.5.0
 RUN . /buildscripts/bh-set-envvars.sh \
     && mkdir tiledb \
     && wget -q https://github.com/TileDB-Inc/TileDB/archive/${TILEDB_VERSION}.tar.gz -O - \
