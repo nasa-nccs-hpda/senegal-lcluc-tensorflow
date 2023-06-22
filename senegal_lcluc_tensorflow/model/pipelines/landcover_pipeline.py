@@ -2,8 +2,6 @@ import os
 import sys
 import time
 import logging
-import rasterio
-import osgeo.gdal
 import numpy as np
 import xarray as xr
 import rioxarray as rxr
