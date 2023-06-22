@@ -1,0 +1,50 @@
+[project]
+name = "senegal-lcluc-tensorflow"
+authors = [
+    {name = "Jordan A. Caraballo-Vega", email = "jordan.a.caraballo-vega@nasa.gov"},
+]
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.7"
+dynamic = ["version", "description"]
+
+[build-system]
+requires = [
+    "setuptools >= 40.6.0",
+    "setuptools_scm[toml] >= 4, <6",
+    "setuptools_scm_git_archive",
+    "setuptools-git-versioning",
+    "poetry",
+    "wheel",
+    "omegaconf",
+    "segmentation-models",
+    "xarray",
+    "rioxarray",
+    "numba",
+    "pygeotools @ git+https://github.com/dshean/pygeotools.git@master",
+    "tensorflow-caney @ git+https://github.com/nasa-nccs-hpda/tensorflow-caney.git@main",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+write_to = "senegal_lcluc_tensorflow/version.py"
+
+[tool.coverage.run]
+branch = true
+relative_files = true
+source = ['senegal_lcluc_tensorflow']
+omit = ['senegal_lcluc_tensorflow/version.py']
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 95
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[project.scripts]
+landcover-cnn-pipeline = "senegal_lcluc_tensorflow.view.landcover_cnn_pipeline_cli:main"
