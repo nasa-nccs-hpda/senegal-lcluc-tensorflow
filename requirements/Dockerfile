@@ -4,9 +4,15 @@
 # This file is available at the option of the licensee under:
 # Public domain
 # or licensed under MIT (LICENSE.TXT) Copyright 2019 Even Rouault <even.rouault@spatialys.com>
+ARG TF_VER=tf2
+ARG VERSION_DATE=23.05
+ARG FROM_IMAGE=nvcr.io/nvidia/tensorflow
 
-ARG BASE_IMAGE=ubuntu:20.04
-ARG TARGET_BASE_IMAGE=ubuntu:20.04
+#ARG BASE_IMAGE=ubuntu:20.04
+#ARG TARGET_BASE_IMAGE=ubuntu:20.04
+
+ARG BASE_IMAGE=${FROM_IMAGE}:${VERSION_DATE}-${TF_VER}-py3
+ARG TARGET_BASE_IMAGE=${FROM_IMAGE}:${VERSION_DATE}-${TF_VER}-py3
 
 FROM $BASE_IMAGE as builder
 
