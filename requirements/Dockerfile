@@ -2,7 +2,7 @@
 # Public domain
 # or licensed under MIT (LICENSE.TXT) Copyright 2019 Even Rouault <even.rouault@spatialys.com>
 ARG TF_VER=tf2
-ARG VERSION_DATE=23.06
+ARG VERSION_DATE=23.05
 ARG FROM_IMAGE=nvcr.io/nvidia/tensorflow
 
 # Import RAPIDS container as the BASE Image (cuda base image)
