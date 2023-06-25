@@ -75,6 +75,27 @@ RUN . /buildscripts/bh-set-envvars.sh \
        libarchive-dev${APT_ARCH_SUFFIX} \
     && rm -rf /var/lib/apt/lists/*
 
+# Build tiledb
+ARG TILEDB_VERSION=2.15.3
+RUN . /buildscripts/bh-set-envvars.sh \
+    && apt-get update -y \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --fix-missing --no-install-recommends libfmt-dev \
+    && mkdir tiledb \
+    && wget -q https://github.com/TileDB-Inc/TileDB/archive/${TILEDB_VERSION}.tar.gz -O - \
+        | tar xz -C tiledb --strip-components=1 \
+    && cd tiledb \
+    && mkdir build_cmake \
+    && cd build_cmake \
+    && ../bootstrap --prefix=/usr --disable-werror \
+    && make -j$(nproc) \
+    && make install-tiledb DESTDIR="/build_thirdparty" \
+    && make install-tiledb \
+    && cd ../.. \
+    && rm -rf tiledb \
+    && for i in /build_thirdparty/usr/lib/${GCC_ARCH}-linux-gnu/*; do strip -s $i 2>/dev/null || /bin/true; done \
+    && for i in /build_thirdparty/usr/bin/*; do strip -s $i 2>/dev/null || /bin/true; done
+
+
 # Build likbkea
 ARG KEA_VERSION=1.5.0
 RUN . /buildscripts/bh-set-envvars.sh \
@@ -127,24 +148,6 @@ RUN . /buildscripts/bh-set-envvars.sh \
     && make install \
     && cd ../.. \
     && rm -rf mongocxx \
-    && for i in /build_thirdparty/usr/lib/${GCC_ARCH}-linux-gnu/*; do strip -s $i 2>/dev/null || /bin/true; done \
-    && for i in /build_thirdparty/usr/bin/*; do strip -s $i 2>/dev/null || /bin/true; done
-
-# Build tiledb
-ARG TILEDB_VERSION=2.15.3
-RUN . /buildscripts/bh-set-envvars.sh \
-    && mkdir tiledb \
-    && wget -q https://github.com/TileDB-Inc/TileDB/archive/${TILEDB_VERSION}.tar.gz -O - \
-        | tar xz -C tiledb --strip-components=1 \
-    && cd tiledb \
-    && mkdir build_cmake \
-    && cd build_cmake \
-    && ../bootstrap --prefix=/usr --disable-werror \
-    && make -j$(nproc) \
-    && make install-tiledb DESTDIR="/build_thirdparty" \
-    && make install-tiledb \
-    && cd ../.. \
-    && rm -rf tiledb \
     && for i in /build_thirdparty/usr/lib/${GCC_ARCH}-linux-gnu/*; do strip -s $i 2>/dev/null || /bin/true; done \
     && for i in /build_thirdparty/usr/bin/*; do strip -s $i 2>/dev/null || /bin/true; done
 
