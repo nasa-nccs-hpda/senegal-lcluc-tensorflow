@@ -2,11 +2,11 @@
 
 set -e
 
-if test "${PROJ_VERSION}" = ""; then
+if test "x${PROJ_VERSION}" = "x"; then
     PROJ_VERSION=master
 fi
 
-if test "${DESTDIR}" = ""; then
+if test "x${DESTDIR}" = "x"; then
     DESTDIR=/build
 fi
 
@@ -26,7 +26,7 @@ wget -q "https://github.com/OSGeo/PROJ/archive/${PROJ_VERSION}.tar.gz" \
 
         export CC="ccache ${GCC_ARCH}-linux-gnu-gcc"
         export CXX="ccache ${GCC_ARCH}-linux-gnu-g++"
-        export PROJ_DB_CACHE_DIR="$HOME/.cache"
+        export PROJ_DB_CACHE_DIR="$HOME/.ccache"
 
         ccache -M 100M
     fi
@@ -46,10 +46,10 @@ wget -q "https://github.com/OSGeo/PROJ/archive/${PROJ_VERSION}.tar.gz" \
         ccache -s
 
         echo "Uploading cache..."
-        rsync -ra --delete "$HOME/.cache" "${RSYNC_REMOTE}/proj/${GCC_ARCH}/"
+        rsync -ra --delete "$HOME/.ccache" "${RSYNC_REMOTE}/proj/${GCC_ARCH}/"
         echo "Finished"
 
-        rm -rf "$HOME/.cache"
+        rm -rf "$HOME/.ccache"
         unset CC
         unset CXX
     fi
