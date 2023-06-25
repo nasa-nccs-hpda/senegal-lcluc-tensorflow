@@ -126,24 +126,24 @@ RUN . /buildscripts/bh-set-envvars.sh \
 #    && for i in /build_thirdparty/usr/bin/*; do strip -s $i 2>/dev/null || /bin/true; done
 
 # Build tiledb
-#COPY ./requirements/tiledb-5cad65f4c.patch /buildscripts/tiledb-5cad65f4c.patch
-#ARG TILEDB_VERSION=2.3.1
-#RUN . /buildscripts/bh-set-envvars.sh \
-#    && mkdir tiledb \
-#    && wget -q https://github.com/TileDB-Inc/TileDB/archive/${TILEDB_VERSION}.tar.gz -O - \
-#        | tar xz -C tiledb --strip-components=1 \
-#    && cd tiledb \
-#    && patch -p1 < /buildscripts/tiledb-5cad65f4c.patch \
-#    && mkdir build_cmake \
-#    && cd build_cmake \
-#    && ../bootstrap --prefix=/usr --disable-werror \
-#    && make -j$(nproc) \
-#    && make install-tiledb DESTDIR="/build_thirdparty" \
-#    && make install-tiledb \
-#    && cd ../.. \
-#    && rm -rf tiledb \
-#    && for i in /build_thirdparty/usr/lib/${GCC_ARCH}-linux-gnu/*; do strip -s $i 2>/dev/null || /bin/true; done \
-#    && for i in /build_thirdparty/usr/bin/*; do strip -s $i 2>/dev/null || /bin/true; done
+COPY ./requirements/tiledb-5cad65f4c.patch /buildscripts/tiledb-5cad65f4c.patch
+ARG TILEDB_VERSION=2.3.1
+RUN . /buildscripts/bh-set-envvars.sh \
+    && mkdir tiledb \
+    && wget -q https://github.com/TileDB-Inc/TileDB/archive/${TILEDB_VERSION}.tar.gz -O - \
+        | tar xz -C tiledb --strip-components=1 \
+    && cd tiledb \
+    && patch -p1 < /buildscripts/tiledb-5cad65f4c.patch \
+    && mkdir build_cmake \
+    && cd build_cmake \
+    && ../bootstrap --prefix=/usr --disable-werror \
+    && make -j$(nproc) \
+    && make install-tiledb DESTDIR="/build_thirdparty" \
+    && make install-tiledb \
+    && cd ../.. \
+    && rm -rf tiledb \
+    && for i in /build_thirdparty/usr/lib/${GCC_ARCH}-linux-gnu/*; do strip -s $i 2>/dev/null || /bin/true; done \
+    && for i in /build_thirdparty/usr/bin/*; do strip -s $i 2>/dev/null || /bin/true; done
 
 # Build openjpeg
 #ARG OPENJPEG_VERSION=
