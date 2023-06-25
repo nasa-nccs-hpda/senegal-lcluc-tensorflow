@@ -15,7 +15,7 @@ ARG BASE_IMAGE=${FROM_IMAGE}:${VERSION_DATE}-${TF_VER}-py3
 # Public domain
 # or licensed under X/MIT (LICENSE.TXT) Copyright 2019 Even Rouault <even.rouault@spatialys.com>
 
-FROM BASE_IMAGE as builder
+FROM $BASE_IMAGE as builder
 
 # Derived from osgeo/proj by Howard Butler <howard@hobu.co>
 MAINTAINER Even Rouault <even.rouault@spatialys.com>
@@ -146,7 +146,7 @@ RUN wget -q https://github.com/OSGeo/gdal/archive/${GDAL_VERSION}.zip -O gdal-${
     && for i in /build/usr/bin/*; do strip -s $i 2>/dev/null || /bin/true; done
 
 # Build final image
-FROM BASE_IMAGE as runner
+FROM $BASE_IMAGE as runner
 
 RUN date
 
