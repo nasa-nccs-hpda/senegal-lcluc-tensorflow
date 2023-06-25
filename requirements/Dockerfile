@@ -15,7 +15,7 @@ LABEL maintainer="Even Rouault <even.rouault@spatialys.com>"
 
 ARG TARGET_ARCH=
 RUN echo ${TARGET_ARCH}
-COPY ./bh-set-envvars.sh /buildscripts/bh-set-envvars.sh
+COPY ./requirements/bh-set-envvars.sh /buildscripts/bh-set-envvars.sh
 
 RUN . /buildscripts/bh-set-envvars.sh \
     && if test "${TARGET_ARCH}" != ""; then \
@@ -125,7 +125,7 @@ RUN ls /buildscripts/
 #    && for i in /build_thirdparty/usr/bin/*; do strip -s $i 2>/dev/null || /bin/true; done
 
 # Build tiledb
-#COPY ./tiledb-5cad65f4c.patch /buildscripts/tiledb-5cad65f4c.patch
+#COPY ./requirements/tiledb-5cad65f4c.patch /buildscripts/tiledb-5cad65f4c.patch
 #ARG TILEDB_VERSION=2.3.1
 #RUN . /buildscripts/bh-set-envvars.sh \
 #    && mkdir tiledb \
@@ -175,7 +175,7 @@ RUN ls /buildscripts/
 
 # Build recent mdbtools
 # Patch to fix an issue with SELECT COUNT(*). See https://github.com/OSGeo/gdal/pull/4104
-#COPY ./mdbtools-lexer.patch /buildscripts/mdbtools-lexer.patch
+#COPY ./requirements/mdbtools-lexer.patch /buildscripts/mdbtools-lexer.patch
 #RUN . /buildscripts/bh-set-envvars.sh \
 #  && wget -q https://github.com/mdbtools/mdbtools/releases/download/v0.9.3/mdbtools-0.9.3.tar.gz \
 #  && tar xzf mdbtools-0.9.3.tar.gz \
@@ -262,7 +262,7 @@ RUN ls /buildscripts/
 # Refresh grids
 #ARG PROJ_DATUMGRID_LATEST_LAST_MODIFIED
 #ARG PROJ_INSTALL_PREFIX=/usr/local
-#COPY ./bh-proj.sh /buildscripts/bh-proj.sh
+#COPY ./requirements/bh-proj.sh /buildscripts/bh-proj.sh
 #RUN . /buildscripts/bh-set-envvars.sh \
 #    && DESTDIR=/build_tmp_proj /buildscripts/bh-proj.sh \
 #     && LD_LIBRARY_PATH=/build_tmp_proj/usr/local/lib /build_tmp_proj/usr/local/bin/projsync --target-dir /tmp/proj_grids --all \
@@ -280,7 +280,7 @@ RUN ls /buildscripts/
 
 # Build GDAL
 
-#COPY ./bh-gdal.sh /buildscripts/bh-gdal.sh
+#COPY ./requirements/bh-gdal.sh /buildscripts/bh-gdal.sh
 #RUN . /buildscripts/bh-set-envvars.sh \
 #    && /buildscripts/bh-gdal.sh
 
