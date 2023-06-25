@@ -79,7 +79,7 @@ RUN . /buildscripts/bh-set-envvars.sh \
 ARG TILEDB_VERSION=2.15.3
 RUN . /buildscripts/bh-set-envvars.sh \
     && apt-get update -y \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y --fix-missing --no-install-recommends libfmt-dev \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --fix-missing --no-install-recommends libspdlog-dev libfmt-dev \
     && mkdir tiledb \
     && wget -q https://github.com/TileDB-Inc/TileDB/archive/${TILEDB_VERSION}.tar.gz -O - \
         | tar xz -C tiledb --strip-components=1 \
