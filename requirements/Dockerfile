@@ -23,7 +23,8 @@ ARG TARGET_ARCH=
 RUN echo ${TARGET_ARCH}
 COPY ./requirements/bh-set-envvars.sh /buildscripts/bh-set-envvars.sh
 
-RUN . /buildscripts/bh-set-envvars.sh \
+RUN chmod +x /buildscripts/bh-set-envvars.sh \
+    && . /buildscripts/bh-set-envvars.sh \
     && if test "${TARGET_ARCH}" != ""; then \
     rm -f /etc/apt/sources.list \
     && echo "deb [arch=amd64] http://us.archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse" >> /etc/apt/sources.list \
@@ -266,9 +267,10 @@ COPY ./requirements/bh-proj.sh /buildscripts/bh-proj.sh
 # only when the content of cdn.proj.org has changed, independently if PROJ master
 # itself has changed.
 RUN . /buildscripts/bh-set-envvars.sh \
+    && chmod +x /buildscripts/bh-proj.sh \
     && DESTDIR=/build_tmp_proj /buildscripts/bh-proj.sh \
-     && LD_LIBRARY_PATH=/build_tmp_proj/usr/local/lib /build_tmp_proj/usr/local/bin/projsync --target-dir /tmp/proj_grids --all \
-     && rm -rf /build_tmp_proj
+    && LD_LIBRARY_PATH=/build_tmp_proj/usr/local/lib /build_tmp_proj/usr/local/bin/projsync --target-dir /tmp/proj_grids --all \
+    && rm -rf /build_tmp_proj
 
 # Build PROJ
 ARG PROJ_VERSION=master
@@ -283,7 +285,8 @@ ARG GDAL_REPOSITORY=OSGeo/gdal
 # Build GDAL
 
 COPY ./requirements/bh-gdal.sh /buildscripts/bh-gdal.sh
-RUN . /buildscripts/bh-set-envvars.sh \
+RUN chmod +x /buildscripts/bh-gdal.sh \
+    && . /buildscripts/bh-set-envvars.sh \
     && /buildscripts/bh-gdal.sh
 
 # Build final image
