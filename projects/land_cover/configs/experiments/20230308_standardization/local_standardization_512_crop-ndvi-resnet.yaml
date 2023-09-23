@@ -1,0 +1,89 @@
+# --------------------------------------------------------------------------
+# Configuration of the parameters for training and preprocessing
+# very-high resolution dataset using deep learning techniques.
+# --------------------------------------------------------------------------
+
+experiment_name: landcover-local-standardization-512-crop-resnet
+experiment_type: otcb
+
+data_dir: '/lscratch/jacaraba/senegal-lcluc/landcover.landcover-local-standardization-512-crop-resnet'
+model_dir: /explore/nobackup/projects/3sl/development/cnn_landcover/standardization/landcover-local-standardization-512-crop-resnet
+seed: 42
+gpu_devices: 0,1,2,3
+mixed_precision: False
+xla: False
+
+input_bands:
+  - CoastalBlue
+  - Blue
+  - Green
+  - Yellow
+  - Red
+  - RedEdge
+  - NIR1
+  - NIR2
+
+output_bands:
+  - NDVI
+
+  
+substract_labels: True
+normalize: 1.0
+rescale: None
+
+modify_labels:
+  - "x == 0": 8
+  - "x == 1": 9
+  - "x == 4": 7
+  - "x == 3": 0
+  - "x == 2": 0
+  - "x == 8": 0
+  - "x == 9": 1
+  - "x == 7": 0
+
+expand_dims: True
+tile_size: 256
+include_classes: False
+augment: True
+
+# standardization functions: local, global, mixed
+# global standardization
+# mixed standardization
+#metadata_regex: '/explore/nobackup/projects/3sl/development/cnn_landcover/normalization/*.csv'
+standardization: 'local'
+batch_size: 32
+n_classes: 1
+test_size: 0.30
+learning_rate: 0.0001
+max_epochs: 6000
+patience: 10
+
+model: "sm.Unet('resnet152', encoder_weights=None, input_shape=(None, None, 1), classes=1, activation='sigmoid')"
+loss: 'tf.keras.losses.BinaryCrossentropy()'
+optimizer: tf.keras.optimizers.Adam
+
+metrics:
+  - 'tf.keras.metrics.BinaryAccuracy()'
+  - 'tf.keras.metrics.Recall()'
+  - 'tf.keras.metrics.Precision()'
+  - 'sm.metrics.iou_score'
+
+callbacks:
+  - "tf.keras.callbacks.ModelCheckpoint(save_best_only=True, mode='min', monitor='val_loss', filepath='${model_dir}/${experiment_name}{epoch:02d}-{val_loss:.2f}.hdf5')"
+  - "tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=4)"
+  - "tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=False)"
+  - "tf.keras.callbacks.TerminateOnNaN()"
+
+# window_size: 8192
+window_size: 10000
+pred_batch_size: 32
+inference_overlap: 0.50
+inference_treshold: 0.50
+probability_map: True
+
+# Prediction location
+inference_regex_list:
+  #- '/explore/nobackup/projects/3sl/data/Tappan/*_data.tif'
+  - '/explore/nobackup/projects/3sl/data/Tappan/Tappan01_WV02_20110430_M1BS_103001000A27E100_data.tif'
+  - '/explore/nobackup/projects/ilab/projects/Ethiopia/LCLUC_Ethiopia/data/test/WV*.tif'
+inference_save_dir: '/explore/nobackup/projects/3sl/development/cnn_landcover/standardization/landcover-local-standardization-512-crop-resnet-ndvi'

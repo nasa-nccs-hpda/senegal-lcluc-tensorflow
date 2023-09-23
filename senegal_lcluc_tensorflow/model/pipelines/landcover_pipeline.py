@@ -1,11 +1,17 @@
 import os
+import re
+import csv
 import sys
 import time
 import logging
+import rasterio
 import numpy as np
+import pandas as pd
 import xarray as xr
 import rioxarray as rxr
 import geopandas as gpd
+import matplotlib.colors as pltc
+from rasterstats import zonal_stats
 from rioxarray.merge import merge_arrays
 
 from tqdm import tqdm
@@ -15,27 +21,14 @@ from itertools import repeat
 from omegaconf import OmegaConf
 from multiprocessing import Pool, cpu_count
 
-from tensorflow_caney.model.config.cnn_config import Config
 from tensorflow_caney.utils.system import seed_everything
 from tensorflow_caney.model.pipelines.cnn_regression import CNNRegression
 from tensorflow_caney.utils.data import gen_random_tiles, \
     get_dataset_filenames, get_mean_std_dataset
 from tensorflow_caney.model.dataloaders.regression import RegressionDataLoader
-# from vhr_cnn_chm.model.atl08 import ATL08
-# from tensorflow_caney.utils.vector.extract import \
-#    convert_coords_to_pixel_location, extract_centered_window
-# from tensorflow_caney.utils.data import modify_bands, \
-#    get_dataset_filenames, get_mean_std_dataset, get_mean_std_metadata
-# from tensorflow_caney.utils.system import seed_everything
-# from tensorflow_caney.model.pipelines.cnn_regression import CNNRegression
-# from tensorflow_caney.model.dataloaders.regression import RegressionDataLoader
-# from tensorflow_caney.utils import indices
-# from tensorflow_caney.utils.model import load_model
-# from tensorflow_caney.inference import regression_inference
-# from pygeotools.lib import iolib, warplib
-
-# osgeo.gdal.UseExceptions()
-
+from tensorflow_caney.utils.analysis import confusion_matrix_func
+from senegal_lcluc_tensorflow.model.config.landcover_config \
+    import LandCoverConfig as Config
 from tensorflow_caney.model.pipelines.cnn_segmentation import CNNSegmentation
 
 
@@ -91,177 +84,247 @@ class LandCoverPipeline(CNNSegmentation):
         # Seed everything
         seed_everything(self.conf.seed)
 
-    def test(self):
-        """
-        import os
-        import glob
-        import warnings
-        import itertools
-        import xarray as xr
-        import numpy as np
-        import matplotlib.pyplot as plt
-        import tensorflow as tf
-        import matplotlib.colors as pltc
-        from sklearn.metrics import accuracy_score, balanced_accuracy_score
-        from sklearn.metrics import classification_report
-        import csv
-        import re
-        ​
-        warnings.filterwarnings("ignore", category=RuntimeWarning)
-        ​
-        def confusion_matrix_func(y_true=[], y_pred=[], nclasses=4, norm=True):
-            
-            Args:
-                y_true:   2D numpy array with ground truth
-                y_pred:   2D numpy array with predictions (already processed)
-                nclasses: number of classes
-            Returns:
-                numpy array with confusion matrix
-            
-        ​
-            y_true = y_true.flatten()
-            y_pred = y_pred.flatten()
-        ​
-            label_name = np.unique(y_pred)
-        ​
-            # get overall weighted accuracy
-            accuracy = accuracy_score(y_true, y_pred, normalize=True, sample_weight=None)
-            balanced_accuracy = balanced_accuracy_score(y_true, y_pred, sample_weight=None)
-        ​
-            # print(classification_report(y_true, y_pred))
-            if len(label_name) != 4:
-                target_names = ['other-vegetation','tree','cropland']
-            else:
-                target_names = ['other-vegetation','tree','cropland','burned']
-            report = classification_report(y_true, y_pred, target_names=target_names, output_dict=True)
-        ​
-            tree_recall = report['tree']['recall']
-            crop_recall = report['cropland']['recall']
-        ​
-            tree_precision = report['tree']['precision']
-            crop_precision = report['cropland']['precision']
-        ​
-            ## get confusion matrix
-            con_mat = tf.math.confusion_matrix(
-                labels=y_true, predictions=y_pred, num_classes=nclasses
-            ).numpy()
-        ​
-            # print(con_mat.sum(axis=1)[:, np.newaxis])
-            # print(con_mat.sum(axis=1)[:, np.newaxis][0])
-            # weights = [con_mat.sum(axis=1)[:, np.newaxis][0][0]/(5000*5000),con_mat.sum(axis=1)[:, np.newaxis][1][0]/(5000*5000),
-            # con_mat.sum(axis=1)[:, np.newaxis][2][0]/(5000*5000),con_mat.sum(axis=1)[:, np.newaxis][3][0]/(5000*5000)]
-        ​
-            # print(weights)
-            # get overall weighted accuracy
-            # accuracy = accuracy_score(y_true, y_pred, normalize=False, sample_weight=weights)
-            # print(con_mat)
-        ​
-            if norm:
-                con_mat = np.around(
-                    con_mat.astype('float') / con_mat.sum(axis=1)[:, np.newaxis],
-                    decimals=2
-                )
-        ​
-            # print(con_mat)
-        ​
-            # print(con_mat.sum(axis=1)[:, np.newaxis])
-            where_are_NaNs = np.isnan(con_mat)
-            con_mat[where_are_NaNs] = 0
-            return con_mat, accuracy, balanced_accuracy, tree_recall, crop_recall, tree_precision, crop_precision
-        ​
-        ​
-        def plot_confusion_matrix(cm, label_name, model, class_names=['a', 'b', 'c']):
-            
-            Returns a matplotlib figure containing the plotted confusion matrix.
-            Args:
-                cm (array, shape = [n, n]): a confusion matrix of integer classes
-                class_names: list with classes for confusion matrix
-            Return: confusion matrix figure.
-            
-            figure = plt.figure(figsize=(8, 8))
-            plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
-            plt.title("Confusion Matrix")
-            # plt.colorbar()
-            tick_marks = np.arange(len(class_names))
-            plt.xticks(tick_marks, class_names, rotation=45)
-            plt.yticks(tick_marks, class_names)
-            # Use white text if squares are dark; otherwise black.
-            threshold = 0.55  # cm.max() / 2.
-            # print(cm.shape[0], cm.shape[1]) #, threshold[0])
-        ​
-            print(label_name[:-27])
-        ​
-            for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-                color = "white" if cm[i, j] > threshold else "black"
-                plt.text(j, i, cm[i, j], horizontalalignment="center", color=color)
-            plt.tight_layout()
-            plt.ylabel('True label')
-            plt.xlabel('Predicted label')
-            plt.savefig(f'/home/geoint/tri/nasa_senegal/confusion_matrix/cas-tl-wcas/{model}-{label_name[:-27]}_cfn_matrix_4class.png')
-            # plt.show()
-            plt.close()
-        ​
-        ​
-        # Press the green button in the gutter to run the script.
-        if __name__ == '__main__':
-        ​
-            classes = ['Other', 'Tree/shrub', 'Croplands', 'Burned Area']  # 6-Cloud not present
-            colors = ['brown', 'forestgreen', 'orange', 'grey']
-            colormap = pltc.ListedColormap(colors)
-        ​
-            labels = sorted(glob.glob('/home/geoint/tri/allwcasmasks/*.tif'))
-        ​
-            out_dir = '/home/geoint/tri/nasa_senegal/pred_eval/increase_wCAS_set1/'
-        ​
-            with open(f'{out_dir}66-0.12-cas15-tl-wcas-8ts-set2-0525_stat_results.csv', 'w') as f1:
-                writer = csv.writer(f1, delimiter=',', lineterminator='\n', )
-                writer.writerow(['tappan', 'overall-accuracy', 'accuracy', 'tree-recall', 'crop-recall', 'tree-precision', 'crop-precision'])
-        ​
-                for lf in labels:
-        ​
-                    print(os.path.basename(lf))
-                    file_name = os.path.basename(lf)
-        ​
-                    name = file_name[:-9]
-        ​
-                    search_term_lf = re.search(r'/allwcasmasks/(.*?)_mask.tif', lf).group(1)
-                    # search_term_lf = re.search(r'/CAS_West_masks/(.*?)_mask', lf).group(1)
-                    print(search_term_lf)
-        ​
-                    pf = '/home/geoint/tri/nasa_senegal/predictions/66-0.12-cas15-tl-wcas-8ts-set2-0525/images/' + search_term_lf + '_data.landcover.tif'
-        ​
-                    search_term_pf = re.search(r'predictions.(.*?)/images', pf).group(1)
-                    print(search_term_pf)
-        ​
-                    # open filenames
-                    label = np.squeeze(xr.open_rasterio(lf).values)
-                    prediction = np.squeeze(xr.open_rasterio(pf).values)
-        ​
-                    ## group label pixel to 4 classes
-                    # label[label == 5] = 3  # merge burned area to other vegetation
-                    label[label == 7] = 3  # merge no-data area to shadow/water
-                    label[label == 4] = 3
-                    label[label == 3] = 0
-                    label[label == 5] = 3
-        ​
-                    # some preprocessing
-                    prediction[prediction == -10001] = 0
-                    prediction[prediction == 255] = 0
-                    # prediction[prediction == 3] = 0
-        ​
-                    print("Unique pixel values of prediction: ", np.unique(prediction))
-                    print("Unique pixel values of label: ", np.unique(label))
-        ​
-                    cnf_matrix, accuracy, balanced_accuracy, tree_recall, crop_recall, tree_precision, crop_precision = confusion_matrix_func(y_true=label, y_pred=prediction, nclasses=len(classes), norm=True)
-        ​
-                    writer.writerow([name, accuracy, balanced_accuracy, tree_recall, crop_recall, tree_precision, crop_precision])
+    def test(self, test_truth_regex: str):
+
+        logging.info('Entering test pipeline step.')
+
+        # set colormap
+        colormap = pltc.ListedColormap(self.conf.test_colors)
+
+        # get label filenames with truth
+        label_filenames = sorted(glob(test_truth_regex))
+        logging.info(f'Found {len(label_filenames)} truth filenames.')
+
+        # get model filename for tracking
+        if self.conf.model_filename is None or self.conf.model_filename == 'None':
+            models_list = glob(os.path.join(self.conf.model_dir, '*.hdf5'))
+            model_filename = max(models_list, key=os.path.getctime)
+        else:
+            model_filename = self.conf.model_filename
+
+        # metrics output filename
+        metrics_output_filename = os.path.join(
+            self.conf.inference_save_dir,
+            f'results_metrics_{os.path.basename(self.conf.data_dir)}' + \
+                f'_{Path(model_filename).stem}.csv'
+        )
+        logging.info(f'Storing CSV metrics under {metrics_output_filename}')
+
+        # metrics csv columns
+        metrics_csv_columns = ['filename', 'overall-accuracy', 'accuracy']
+        for test_metric in ['recall', 'precision', 'user-accuracy', 'producer-accuracy']:
+            for class_name in self.conf.test_classes:
+                metrics_csv_columns.append(f'{class_name}-{test_metric}')
+
+        # open csv filename
+        with open(metrics_output_filename, 'w') as metrics_filename:
+
+            # write row to filename
+            writer = csv.writer(
+                metrics_filename, delimiter=',', lineterminator='\n')
+            writer.writerow(metrics_csv_columns)
+
+            # iterate over each label filename
+            for label_filename in label_filenames:
+
+                # get path to filename to test with
+                filename = "_".join(Path(label_filename).stem.split('_')[:-1])
+
+                # select filename to test with
+                prediction_filename = glob(
+                    os.path.join(
+                        self.conf.inference_save_dir, '*', f'{filename}*.tif'))
+                if len(prediction_filename) == 0:
+                    continue
+
+                # open label and prediction filenames
+                label = np.squeeze(
+                    rxr.open_rasterio(label_filename).values)
+                prediction = np.squeeze(
+                    rxr.open_rasterio(prediction_filename[0]).values)                
         
-                    print("Overall Accuracy: ", accuracy)
-                    print("Balanced Accuracy: ", balanced_accuracy)
-    
-                    plot_confusion_matrix(cnf_matrix, file_name, search_term_pf, class_names=classes)
-        """
+                # group label pixel to 4 classes
+                # TODO: use self.conf.modify_test_labels
+                label[label == 7] = 3
+                label[label == 4] = 3
+                label[label == 3] = 0
+                label[label == 5] = 3
+
+                # some preprocessing
+                # TODO: use self.conf.modify_test_labels
+                prediction[prediction == -10001] = 0
+                prediction[prediction == 255] = 0
+
+                # metrics report and test values
+                metrics_report, cfn_matrix, accuracy, balanced_accuracy = \
+                    confusion_matrix_func(
+                        y_true=label, y_pred=prediction,
+                        nclasses=len(self.conf.test_classes), norm=True
+                    )
+
+                # define row data to write into CSV
+                row_data = [               
+                    filename,
+                    accuracy,
+                    balanced_accuracy,
+                    metrics_report['other-vegetation']['recall'],
+                    metrics_report['tree']['recall'],
+                    metrics_report['cropland']['recall'],
+                    metrics_report['other-vegetation']['precision'],
+                    metrics_report['tree']['precision'],
+                    metrics_report['cropland']['precision']
+                ]
+
+                # two separate for loops because of the columns order
+                for n in range(len(self.conf.test_classes)):
+                    # user accuracy
+                    row_data.append(round(cfn_matrix[n, n] / cfn_matrix[n, :].sum(), 2))
+                
+                for n in range(len(self.conf.test_classes)):
+                    # producer accuracy
+                    row_data.append(round(cfn_matrix[n, n] / cfn_matrix[:, n].sum(), 2))
+
+                writer.writerow(row_data)
+
+        logging.info(f'Metrics saved to {metrics_output_filename}')
+
+        # plot_confusion_matrix(cnf_matrix, file_name, search_term_pf, class_names=classes)
+
         return
 
-    def validate(self):
-        return
+    def validate(self, validation_database: str = None):
+        """
+        Perform validation using georeferenced data
+        """
+
+        logging.info('Entering validation pipeline step.')
+
+        # temporary variables
+        pred_column = 'majority'
+        val_column = 'aggregated_class'
+
+        # read validation database
+        gdf = gpd.read_file(validation_database).to_crs(
+            self.conf.validation_epsg)
+        
+        # transform geometry from validation
+        gdf['geometry'] = gdf.geometry.buffer(
+            self.conf.validation_buffer_kernel,
+            cap_style=self.conf.validation_cap_style
+        )
+        gdf.year = gdf.year.astype(int)
+
+        logging.info(
+            f'The database contains {len(gdf["scene_id"].unique())} individual scenes.')
+
+        validation_database = []
+        for unique_filename in gdf['short_filename'].unique():
+
+            # get prediction filename
+            filename = glob(
+                os.path.join(self.conf.inference_save_dir, '*', f'{unique_filename}*.tif'))[0]
+
+            # get zonal stats for the given geometry
+            temporary_gdf = gdf[gdf['short_filename'] == unique_filename].copy()
+            stats = zonal_stats(temporary_gdf, filename, categorical=True, stats="majority")
+
+            # drive json from zonal stats into dataframe
+            zonal_df = pd.DataFrame(stats)
+            zonal_df['aggregated_class'] = temporary_gdf['aggregated_class'].to_list()
+            zonal_df['short_filename'] = unique_filename
+
+            # append dataframe to validation database
+            validation_database.append(zonal_df)
+
+        # convert the entire database in place
+        validation_database = pd.concat(validation_database, axis=0).reset_index()
+
+        # prioritize trees in some of these locations
+        validation_database['majority'][validation_database[1] > 0] = 1
+
+        # convert values from database into appropiate values
+        # TODO: check this to make sure we know what we are doing with the burn class
+        validation_database[val_column] = \
+            validation_database[val_column].replace([3, 4, 5], [0, 0, 0])
+        validation_database = \
+             validation_database[validation_database[pred_column] != 3]
+
+        # get model filename for tracking
+        if self.conf.model_filename is None or self.conf.model_filename == 'None':
+            models_list = glob(os.path.join(self.conf.model_dir, '*.hdf5'))
+            model_filename = max(models_list, key=os.path.getctime)
+        else:
+            model_filename = self.conf.model_filename
+
+        # metrics output filename
+        metrics_output_filename = os.path.join(
+            self.conf.inference_save_dir,
+            f'results_val_{os.path.basename(self.conf.data_dir)}' + \
+                f'_{Path(model_filename).stem}.csv'
+        )
+        logging.info(f'Storing CSV metrics under {metrics_output_filename}')
+
+        # metrics csv columns
+        metrics_csv_columns = ['filename', 'overall-accuracy', 'accuracy']
+        for test_metric in ['recall', 'precision', 'user-accuracy', 'producer-accuracy']:
+            for class_name in self.conf.test_classes:
+                metrics_csv_columns.append(f'{class_name}-{test_metric}')
+        metrics_csv_columns.append('n_points')
+
+        # open csv filename
+        with open(metrics_output_filename, 'w') as metrics_filename:
+
+            # write row to filename
+            writer = csv.writer(
+                metrics_filename, delimiter=',', lineterminator='\n')
+            writer.writerow(metrics_csv_columns)
+
+            # iterate over each unique filename
+            for unique_filename in validation_database['short_filename'].unique():
+
+                # get temporary gdf
+                temporary_gdf = validation_database[
+                    validation_database['short_filename'] == unique_filename].copy()
+
+                # metrics report and test values
+                metrics_report, cfn_matrix, accuracy, balanced_accuracy = \
+                    confusion_matrix_func(
+                        y_true=temporary_gdf[val_column].values,
+                        y_pred=temporary_gdf[pred_column].values,
+                        nclasses=len(self.conf.test_classes),
+                        norm=True,
+                        sample_points=False
+                    )
+
+                # define row data to write into CSV
+                row_data = [               
+                    unique_filename,
+                    accuracy,
+                    balanced_accuracy,
+                    metrics_report['other-vegetation']['recall'],
+                    metrics_report['tree']['recall'],
+                    metrics_report['cropland']['recall'],
+                    metrics_report['other-vegetation']['precision'],
+                    metrics_report['tree']['precision'],
+                    metrics_report['cropland']['precision'],
+                ]
+
+                # two separate for loops because of the columns order
+                for n in range(len(self.conf.test_classes)):
+                    # user accuracy
+                    row_data.append(round(cfn_matrix[n, n] / cfn_matrix[n, :].sum(), 2))
+                
+                for n in range(len(self.conf.test_classes)):
+                    # producer accuracy
+                    row_data.append(round(cfn_matrix[n, n] / cfn_matrix[:, n].sum(), 2))
+
+                # append number of points
+                row_data.append(temporary_gdf.shape[0])
+
+                writer.writerow(row_data)
+
+        logging.info(f'Metrics saved to {metrics_output_filename}')
+
+        # plot_confusion_matrix(cnf_matrix, file_name, search_term_pf, class_names=classes)
+
+        return 

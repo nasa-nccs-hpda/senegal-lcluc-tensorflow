@@ -31,6 +31,21 @@ def main():
                         dest='data_csv',
                         help='Path to the data configuration file')
 
+    parser.add_argument('-t',
+                        '--test-truth-regex',
+                        type=str,
+                        required=False,
+                        dest='test_truth_regex',
+                        help='Path to test truth regex')
+
+    parser.add_argument('-v',
+                        '--validation-database',
+                        type=str,
+                        required=False,
+                        default=None,
+                        dest='validation_database',
+                        help='Path to validation database')
+
     parser.add_argument(
                         '-s',
                         '--step',
@@ -55,15 +70,15 @@ def main():
 
     # Regression CHM pipeline steps
     if "preprocess" in args.pipeline_step:
-        pipeline.preprocess()
+        pipeline.preprocess(enable_multiprocessing=True)
     if "train" in args.pipeline_step:
         pipeline.train()
     if "predict" in args.pipeline_step:
         pipeline.predict()
     if "test" in args.pipeline_step:
-        pipeline.test()
+        pipeline.test(args.test_truth_regex)
     if "validate" in args.pipeline_step:
-        pipeline.validate()
+        pipeline.validate(args.validation_database)
 
     logging.info(f'Took {(time.time()-timer)/60.0:.2f} min.')
 
