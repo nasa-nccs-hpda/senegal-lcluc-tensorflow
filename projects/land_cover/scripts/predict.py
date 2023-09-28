@@ -3,6 +3,7 @@
 # a configuration file with required parameters and files.
 # --------------------------------------------------------------------------
 import os
+import re
 import sys
 import time
 import logging
@@ -21,10 +22,12 @@ from tensorflow_caney.utils.system import seed_everything
 from tensorflow_caney.utils.model import load_model
 
 from tensorflow_caney.utils.data import modify_bands, \
-    get_mean_std_metadata
+    get_mean_std_metadata, read_metadata
 from tensorflow_caney.utils import indices
 from tensorflow_caney.inference import inference
 
+import tensorflow_caney as tfc
+import segmentation_models as sm
 
 # ---------------------------------------------------------------------------
 # script train.py
@@ -43,7 +46,11 @@ def run(
     # Load model for inference
     model = load_model(
         model_filename=conf.model_filename,
-        model_dir=os.path.join(conf.data_dir, 'model')
+        model_dir=os.path.join(conf.data_dir, 'model'),
+        custom_objects= {
+            'iou_score': sm.metrics.iou_score,
+            'TanimotoDistanceLoss': tfc.losses.TanimotoDistanceLoss
+        }
     )
 
     # Retrieve mean and std, there should be a more ideal place
@@ -70,6 +77,11 @@ def run(
     assert len(data_filenames) > 0, \
         f'No files under {conf.inference_regex} or {conf.inference_regex_list}'
     logging.info(f'{len(data_filenames)} files to predict')
+
+    # gather metadata
+    if conf.metadata_regex is not None:
+        metadata = read_metadata(
+            conf.metadata_regex, conf.input_bands, conf.output_bands)
 
     # iterate files, create lock file to avoid predicting the same file
     for filename in data_filenames:
@@ -112,6 +124,19 @@ def run(
             try:
 
                 logging.info(f'Starting to predict {filename}')
+
+                # if metadata is available
+                if conf.metadata_regex is not None:
+
+                    # get timestamp from filename
+                    year_match = re.search(
+                        r'(\d{4})(\d{2})(\d{2})', filename)
+                    timestamp = str(int(year_match.group(2)))
+
+                    # get monthly values
+                    mean = metadata[timestamp]['median'].to_numpy()
+                    std = metadata[timestamp]['std'].to_numpy()
+                    conf.standardization = 'global'
 
                 # create lock file
                 open(lock_filename, 'w').close()
@@ -158,12 +183,16 @@ def run(
                 rescale=conf.rescale
             )
 
+            #print(image)
+            #print(image.coords["band"].values[1:])
+
             # Drop image band to allow for a merge of mask
             image = image.drop(
                 dim="band",
                 labels=image.coords["band"].values[1:],
-                drop=True
             )
+
+            #print(image)
 
             # Get metadata to save raster
             prediction = xr.DataArray(
