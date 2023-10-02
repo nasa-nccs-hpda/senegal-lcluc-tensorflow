@@ -1,0 +1,22 @@
+square_number: 02
+
+algorithm: kmeans
+
+input_dir: '/explore/nobackup/projects/ilab/data/srlite/products/srlite_1.0.1/srlite/senegal/CAS/'
+input_txt_file: '/explore/nobackup/people/mcarrol2/LCLUC_Senegal/Tappan02_WV-MS.txt'
+input_identifier: '-sr-02m.tif'
+output_dir: '/explore/nobackup/projects/3sl/data/SRLite/Tappan/tappan_02'
+
+clip: True
+upper_left_x: 604775
+upper_left_y: 1462750
+window_size_x: 5000
+window_size_y: 5000
+
+clustering: False
+num_clusters: 60
+random_state: 42
+batch_size: 32
+
+output_pre_str: 'Tappan'
+

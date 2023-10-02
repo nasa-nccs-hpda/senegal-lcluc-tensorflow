@@ -2,7 +2,7 @@ import sys
 import time
 import logging
 import argparse
-from senegal_lcluc_tensorflow.model.pipelines.landuse_classification \
+from senegal_lcluc_tensorflow.model.pipelines.landuse_pipeline \
     import LandUseClassification as LandUsePipeline
 
 
@@ -24,13 +24,14 @@ def main():
                         dest='config_file',
                         help='Path to the configuration file')
 
+    # TODO: maybe allow for a list of regexes
     parser.add_argument('-d',
-                        '--label-regex',
+                        '--data-regex',
                         type=str,
                         required=False,
                         default=None,
-                        dest='label_regex',
-                        help='Regex to label GeoTiff to download Sentinel for')
+                        dest='data_regex',
+                        help='Regex to GeoTiff data to download Sentinel for')
 
     parser.add_argument('-a',
                         '--gee-account',
@@ -69,15 +70,17 @@ def main():
 
     # Regression CHM pipeline steps
     if "setup" in args.pipeline_step:
-        pipeline.setup(args.label_regex, args.gee_account, args.gee_key)
-    #if "preprocess" in args.pipeline_step:
+        pipeline.setup()
+    # if "setup" in args.pipeline_step:
+    #    pipeline.setup(args.label_regex, args.gee_account, args.gee_key)
+    # if "preprocess" in args.pipeline_step:
     #    pipeline.preprocess()
-    #if "train" in args.pipeline_step:
+    # if "train" in args.pipeline_step:
     #    pipeline.train()
-    #if "predict" in args.pipeline_step:
+    # if "predict" in args.pipeline_step:
     #    pipeline.predict()
 
-    #logging.info(f'Took {(time.time()-timer)/60.0:.2f} min.')
+    logging.info(f'Took {(time.time()-timer)/60.0:.2f} min.')
 
 
 # -----------------------------------------------------------------------------

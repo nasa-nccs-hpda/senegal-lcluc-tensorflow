@@ -17,6 +17,14 @@ singularity build --sandbox /lscratch/$USER/container/tensorflow-caney docker://
 
 ## Quick Start
 
+### Generate Tappan Squares
+
+Generating tappan squares can be achieved with the tapann_pipeline_cli.py script. Its execution is as follows:
+
+```bash
+singularity exec --env PYTHONPATH="/explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow:/explore/nobackup/people/$USER/development/tensorflow-caney:/explore/nobackup/people/jacaraba/development" --nv -B /explore/nobackup/projects/ilab,/explore/nobackup/projects/3sl,$NOBACKUP,/explore/nobackup/people /lscratch/$USER/container/tensorflow-caney python /explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow/senegal_lcluc_tensorflow/view/tappan_pipeline_cli.py -c /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/projects/tappan_generation/configs-srlite/tappan_06.yaml
+```
+
 ### Test
 
 Generate metrics and statistics using test data.

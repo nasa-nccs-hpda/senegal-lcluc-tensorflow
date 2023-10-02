@@ -1,4 +1,6 @@
 import sys
+import tqdm
+import logging
 import argparse
 import omegaconf
 from datetime import datetime
@@ -31,3 +33,32 @@ def valid_date(s):
     except ValueError:
         msg = "not a valid date: {0!r}".format(s)
         raise argparse.ArgumentTypeError(msg)
+
+
+# -------------------------------------------------------------------------
+# TqdmLoggingHandler
+# -------------------------------------------------------------------------
+class TqdmLoggingHandler(logging.Handler):
+    def __init__(self, level=logging.NOTSET):
+        super().__init__(level)
+
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            tqdm.tqdm.write(msg)
+            self.flush()
+        except Exception:
+            self.handleError(record)
+
+# -------------------------------------------------------------------------
+# get_tappan_base_command
+# -------------------------------------------------------------------------
+def get_tappan_base_command(dataset):
+
+    return 'gdalwarp ' + \
+        ' -multi' + \
+        ' -tap' + \
+        ' -tr 2 2' + \
+        ' -s_srs "' + \
+        dataset.GetSpatialRef().ExportToProj4() + \
+        '"'

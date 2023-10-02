@@ -1,0 +1,21 @@
+square_number: '18'
+
+algorithm: kmeans
+
+input_dir: '/explore/nobackup/projects/3sl/data/SRLite/CAS'
+input_txt_file: '/explore/nobackup/people/mcarrol2/LCLUC_Senegal/Tappan${square_number}_WV-MS.txt'
+input_identifier: '-sr-02m.tif'
+output_dir: '/explore/nobackup/projects/3sl/data/SRLite/Tappan/tappan_${square_number}'
+
+clip: True
+upper_left_x: 535952
+upper_left_y: 1460425
+window_size_x: 5000
+window_size_y: 5000
+
+clustering: False
+num_clusters: 60
+random_state: 42
+batch_size: 32
+
+output_pre_str: 'Tappan'

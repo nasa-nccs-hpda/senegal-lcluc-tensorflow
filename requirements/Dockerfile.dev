@@ -1,0 +1,10 @@
+FROM nasanccs/tensorflow-caney:latest
+LABEL maintainer="jordan.a.caraballo-vega@nasa.gov"
+
+ENV TFC_VERSION=0.1.1
+ENV SENEGAL_LCLUC_VERSION=main
+
+RUN pip install git+https://github.com/dshean/pygeotools.git@master
+
+HEALTHCHECK NONE
+ENTRYPOINT [""]
