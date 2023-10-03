@@ -1,11 +1,11 @@
-square_number: 02
+square_number: '02'
 
 algorithm: kmeans
 
-input_dir: '/explore/nobackup/projects/ilab/data/srlite/products/srlite_1.0.1/srlite/senegal/CAS/'
-input_txt_file: '/explore/nobackup/people/mcarrol2/LCLUC_Senegal/Tappan02_WV-MS.txt'
+input_dir: '/explore/nobackup/projects/3sl/data/SRLite/CAS'
+input_txt_file: '/explore/nobackup/people/mcarrol2/LCLUC_Senegal/Tappan${square_number}_WV-MS.txt'
 input_identifier: '-sr-02m.tif'
-output_dir: '/explore/nobackup/projects/3sl/data/SRLite/Tappan/tappan_02'
+output_dir: '/explore/nobackup/projects/3sl/data/SRLite/Tappan/tappan_${square_number}'
 
 clip: True
 upper_left_x: 604775

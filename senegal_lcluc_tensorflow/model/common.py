@@ -57,7 +57,6 @@ def get_tappan_base_command(dataset):
 
     return 'gdalwarp ' + \
         ' -multi' + \
-        ' -tap' + \
         ' -tr 2 2' + \
         ' -s_srs "' + \
         dataset.GetSpatialRef().ExportToProj4() + \
