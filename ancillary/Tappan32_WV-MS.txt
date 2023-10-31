@@ -1,0 +1,13 @@
+/explore/nobackup/projects/3sl/data/VHR/ETZ/M1BS/WV02_20101103_M1BS_1030010006961700-toa.tif
+/explore/nobackup/projects/3sl/data/VHR/ETZ/M1BS/WV02_20120805_M1BS_1030010019BA3F00-toa.tif
+/explore/nobackup/projects/3sl/data/VHR/ETZ/M1BS/WV02_20121028_M1BS_103001001C0E8900-toa.tif
+/explore/nobackup/projects/3sl/data/VHR/ETZ/M1BS/WV02_20130613_M1BS_103001002379A100-toa.tif
+/explore/nobackup/projects/3sl/data/VHR/ETZ/M1BS/WV02_20171022_M1BS_10300100735A9400-toa.tif
+/explore/nobackup/projects/3sl/data/VHR/ETZ/M1BS/WV02_20171022_M1BS_1030010073C51700-toa.tif
+/explore/nobackup/projects/3sl/data/VHR/ETZ/M1BS/WV02_20210507_M1BS_10300100BE8F1E00-toa.tif
+/explore/nobackup/projects/3sl/data/VHR/ETZ/M1BS/WV03_20150228_M1BS_1040010008379300-toa.tif
+/explore/nobackup/projects/3sl/data/VHR/ETZ/M1BS/WV03_20150228_M1BS_10400100088E7000-toa.tif
+/explore/nobackup/projects/3sl/data/VHR/ETZ/M1BS/WV03_20160217_M1BS_10400100171CEC00-toa.tif
+/explore/nobackup/projects/3sl/data/VHR/ETZ/M1BS/WV03_20170529_M1BS_104001002CA73E00-toa.tif
+/explore/nobackup/projects/3sl/data/VHR/ETZ/M1BS/WV03_20191105_M1BS_10400100551A5F00-toa.tif
+/explore/nobackup/projects/3sl/data/VHR/ETZ/M1BS/WV03_20191105_M1BS_10400100554AC400-toa.tif
