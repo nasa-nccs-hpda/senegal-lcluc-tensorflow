@@ -1,0 +1,11 @@
+#!/bin/bash
+#SBATCH -t05-00:00:00 -N1 -J 3sl --export=ALL
+module load singularity
+
+#Run tasks sequentially without ‘&’
+srun -n1 singularity exec --env PYTHONPATH="/explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow:/explore/nobackup/people/jacaraba/development/tensorflow-caney" \
+    --nv -B /explore/nobackup/projects/ilab,/explore/nobackup/projects/3sl,$NOBACKUP,/lscratch,/explore/nobackup/people /explore/nobackup/projects/ilab/containers/above-shrubs.2023.07 \
+    python /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/senegal_lcluc_tensorflow/view/landcover_cnn_pipeline_cli.py \
+    -c /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/projects/land_cover/configs/experiments/2023-GMU-V2/batch4/allregions-60TS-tlq-eCAS-5TS_repeat3/allregions-60TS-tlq-eCAS-5TS_repeat3.yaml \
+    -d /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/projects/land_cover/configs/experiments/2023-GMU-V2/batch4/allregions-60TS-tlq-eCAS-5TS_repeat3/high-quality-ecas-train-5ts.csv \
+    -s preprocess train predict

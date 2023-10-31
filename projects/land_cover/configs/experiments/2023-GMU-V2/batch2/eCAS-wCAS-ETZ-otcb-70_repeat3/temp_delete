@@ -1,0 +1,5 @@
+for dir in /explore/nobackup/projects/3sl/development/cnn_landcover/GMU_Experiments/*
+do
+    echo $dir
+    rm -rf $dir/images $dir/labels
+done
