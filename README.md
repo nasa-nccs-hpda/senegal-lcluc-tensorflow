@@ -1,4 +1,10 @@
-# senegal-lcluc-tensorflow
+# Senegal LCLUC TensorFlow
+
+Python library to process and classify remote sensing imagery by means of GPUs and CPU parallelization for high performance and commodity base environments. This repository focuses in using CNNs for the inference of very
+high-resolution remote sensing imagery in Senegal.
+
+We are currently working on tutorials and documentations. Feel to follow this repository for documentation
+updates and upcoming tutorials.
 
 [![DOI](https://zenodo.org/badge/474016543.svg)](https://zenodo.org/badge/latestdoi/474016543)
 ![CI Workflow](https://github.com/nasa-nccs-hpda/senegal-lcluc-tensorflow/actions/workflows/ci.yml/badge.svg)
@@ -7,9 +13,11 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Coverage Status](https://coveralls.io/repos/github/nasa-nccs-hpda/senegal-lcluc-tensorflow/badge.svg?branch=main)](https://coveralls.io/github/nasa-nccs-hpda/senegal-lcluc-tensorflow?branch=main)
 
-Senegal LCLUC TensorFlow
-
 ## Downloading the Container
+
+The container for this work can be downloaded from DockerHub. The container is deployed on a weekly basis
+to take care of potential OS vulnerabilities. All CPU and GPU dependencies are baked into the container image
+for end-to-end processing.
 
 ```bash
 singularity build --sandbox /lscratch/$USER/container/tensorflow-caney docker://nasanccs/tensorflow-caney:latest
@@ -17,12 +25,18 @@ singularity build --sandbox /lscratch/$USER/container/tensorflow-caney docker://
 
 ## Data Preprocessing
 
+The data used in this work is provided by NGA through the NextView agreement. As long as you are part of this
+agreement, you can get access to the WorldView imagery we have processed. We also work with Planet imagery
+as part of this project, which is free of access through the NICFI program.
+
 ### Generate Tappan Squares
 
-Generating tappan squares can be achieved with the tapann_pipeline_cli.py script. Its execution is as follows:
+To generate training and small samples of data we generated the so called Tappan squares in honor of our
+colleague Gray Tappan. These Tappan squares are 5000x5000 pixel squares, for an area of 10000x10000 m^2.
+Generating Tappan squares can be achieved with the tapann_pipeline_cli.py script. Its execution is as follows:
 
 ```bash
-singularity exec --env PYTHONPATH="/explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow:/explore/nobackup/people/$USER/development/tensorflow-caney:/explore/nobackup/people/jacaraba/development" --nv -B /explore/nobackup/projects/ilab,/explore/nobackup/projects/3sl,$NOBACKUP,/explore/nobackup/people /lscratch/$USER/container/tensorflow-caney python /explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow/senegal_lcluc_tensorflow/view/tappan_pipeline_cli.py -c /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/projects/tappan_generation/configs-srlite/tappan_06.yaml
+singularity exec --env PYTHONPATH="/explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow:/explore/nobackup/people/$USER/development/tensorflow-caney:/explore/nobackup/people/jacaraba/development" --nv -B /explore/nobackup/projects/ilab,/explore/nobackup/projects/3sl,$NOBACKUP,/explore/nobackup/people /lscratch/$USER/container/tensorflow-caney python /explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow/senegal_lcluc_tensorflow/view/tappan_pipeline_cli.py -c /explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow/projects/tappan_generation/configs-srlite/tappan_06.yaml
 ```
 
 ## Land Cover CNN Workflow
