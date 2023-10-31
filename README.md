@@ -3,6 +3,8 @@
 Python library to process and classify remote sensing imagery by means of GPUs and CPU parallelization for high performance and commodity base environments. This repository focuses in using CNNs for the inference of very
 high-resolution remote sensing imagery in Senegal.
 
+![study-area](docs/senegal-study-area.png)
+
 We are currently working on tutorials and documentations. Feel to follow this repository for documentation
 updates and upcoming tutorials.
 
@@ -12,6 +14,14 @@ updates and upcoming tutorials.
 ![Code style: PEP8](https://github.com/nasa-nccs-hpda/senegal-lcluc-tensorflow/actions/workflows/lint.yml/badge.svg)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Coverage Status](https://coveralls.io/repos/github/nasa-nccs-hpda/senegal-lcluc-tensorflow/badge.svg?branch=main)](https://coveralls.io/github/nasa-nccs-hpda/senegal-lcluc-tensorflow?branch=main)
+
+## Science Questions
+
+- Can 2m VHR imagery enhance our understanding of changes in the extent, intensity and land use of agriculture and forestry in Senegal?
+- How can we better take advantage of NASA’s HEC resources to apply Deep learning for land cover change monitoring?
+- Can we scale-up Unet CNNs to compensate for the diversity of landscapes and images to map regional land cover?
+
+![example-study](docs/senegal-example.png)
 
 ## Downloading the Container
 
