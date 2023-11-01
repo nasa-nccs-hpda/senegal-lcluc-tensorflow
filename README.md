@@ -11,6 +11,7 @@ Python library to process and classify remote sensing imagery by means of GPUs a
 high-resolution remote sensing imagery in Senegal.
 
 ![study-area](docs/senegal-study-area.png)
+
 Figure 1. Study area of this repository.
 
 We are currently working on tutorials and documentations. Feel to follow this repository for documentation
@@ -23,6 +24,7 @@ updates and upcoming tutorials.
 - Can we scale-up Unet CNNs to compensate for the diversity of landscapes and images to map regional land cover?
 
 ![example-study](docs/senegal-example.png)
+
 Figure 2. Wet and dry seasonality for cluster of typical fields in Senegal, Photos from Collaborator Gray Tappan
 
 ## Downloading the Container
