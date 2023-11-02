@@ -9,6 +9,12 @@ senegal/
 *.gpkg
 _footprints/
 
+projects/land_cover/models/
+projects/land_cover/notebooks/forMaggie/
+projects/land_cover/notebooks/forMaggie*
+dask-worker-space/
+logs/
+
 # for now
 *.ipynb
 

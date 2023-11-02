@@ -48,3 +48,6 @@ target-version = ['py38']
 
 [project.scripts]
 landcover-cnn-pipeline = "senegal_lcluc_tensorflow.view.landcover_cnn_pipeline_cli:main"
+landuse-cnn-pipeline = "senegal_lcluc_tensorflow.view.landuse_cnn_pipeline_cli:main"
+composite-pipeline = "senegal_lcluc_tensorflow.view.composite_pipeline_cli:main"
+tappan-pipeline = "senegal_lcluc_tensorflow.view.tappan_pipeline_cli:main"

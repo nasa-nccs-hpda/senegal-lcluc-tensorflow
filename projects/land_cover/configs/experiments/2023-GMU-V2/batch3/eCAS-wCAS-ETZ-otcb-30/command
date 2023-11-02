@@ -1,0 +1,4 @@
+```bash
+singularity exec --env PYTHONPATH="/explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow:/explore/nobackup/people/jacaraba/development/tensorflow-caney" --nv -B /explore/nobackup/projects/ilab,/explore/nobackup/projects/3sl,$NOBACKUP,/lscratch,/explore/nobackup/people /lscratch/jacaraba/container/tensorflow-caney python /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/senegal_lcluc_tensorflow/view/landcover_cnn_pipeline_cli.py -c /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/projects/land_cover/configs/experiments/2023-GMU-V2/batch3/eCAS-wCAS-ETZ-otcb-30/eCAS-wCAS-ETZ-otcb-30.yaml -d /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/projects/land_cover/configs/experiments/2023-GMU-V2/batch3/eCAS-wCAS-ETZ-otcb-30/senegal-goodlabels.csv -s preprocess train predict
+```
+
