@@ -1,0 +1,144 @@
+# ---------------------------------------------------------------------------
+# # Configuration options for CNN Regression
+# ---------------------------------------------------------------------------
+
+# ----------------------------- General ----------------------------------- #
+# experiment name and type
+experiment_name: landuse
+experiment_type: landuse-etz
+
+# seed to avoid randomization across experiments
+seed: 42
+
+# gpu devices to use
+gpu_devices: 0,1,2,3
+
+# enable mixed precision, disable for regression stability
+mixed_precision: False
+
+# enable linear acceleration, disable for regression stability
+xla: False
+
+# -------------------- Directory Configurations --------------------------- #
+
+# directory to store output data
+data_dir: '/explore/nobackup/projects/3sl/development/cnn_landuse'
+
+data_regex:
+  #- '/explore/nobackup/people/mcarrol2/LCLUC_Senegal/ForKonrad/Tappan21*_data.tif'
+  - '/explore/nobackup/people/mcarrol2/LCLUC_Senegal/ForKonrad/Tappan22*_data.tif'
+  #- '/explore/nobackup/people/mcarrol2/LCLUC_Senegal/ForKonrad/Tappan23*_data.tif'
+  #- '/explore/nobackup/people/mcarrol2/LCLUC_Senegal/ForKonrad/Tappan28*_data.tif'
+  #- '/explore/nobackup/people/mcarrol2/LCLUC_Senegal/ForKonrad/Tappan30*_data.tif'
+  #- '/explore/nobackup/people/mcarrol2/LCLUC_Senegal/ForKonrad/Tappan33*_data.tif'
+
+# directories where stereo pair outputs is at
+#stereo_dirs:
+#  - '/explore/nobackup/people/pmontesa/outASP/cnn_mode_test/WV02_20160623_10300100577C7E00_1030010058580000'
+#  - '/explore/nobackup/people/pmontesa/outASP/cnn_mode_test/WV01_20130825_1020010024E78600_10200100241E6200'
+#  - '/explore/nobackup/people/pmontesa/outASP/cnn_mode_test/WV03_20160616_104001001EBDB400_104001001E13F600'
+
+# directory to store models
+model_dir: '/explore/nobackup/projects/ilab/projects/AIML_CHM/DEM_CHM/development/dsm-test-stereo-v1'
+
+# ------------------------- Setup Configurations -------------------------- #
+
+#disparity_map_regex: 'out-F.tif'
+#stereo_pair_regex: '*r100_*m.tif'
+#lowres_dsm_regex: 'out-DEM_24m.tif'
+#midres_dsm_regex: 'out-DEM_4m.tif'
+#highres_dsm_regex: 'out-DEM_1m.tif'
+
+# -------------------- Preprocess Configurations -------------------------- #
+
+# tile size to feed the CNN
+tile_size: 256
+
+#n_tiles: 10000
+
+# expand dimension for probability mapping
+expand_dims: True
+
+# include several occurrences in the training data
+include_classes: True
+
+# modify label masks
+modify_labels:
+  - "x < 0": 0
+
+# perform data augmentation on tiles
+augment: True
+
+# input bands from the WorldView imagery
+input_bands:
+  - Mosaic1
+  - Mosaic2
+
+# output bands to train the model on
+output_bands:
+  - Mosaic1
+  - Mosaic2
+
+# ---------------------- Training Configurations -------------------------- #
+
+# standardization functions: local, global, mixed
+standardization: 'local'
+
+# normalize label value, value of the tallest tree
+#normalize_label: 250.0
+normalize_label: 1.0
+
+# training batch size
+batch_size: 64
+
+# number of classes
+n_classes: 1
+
+# ratio for test size (validation dataset)
+test_size: 0.20
+
+# learning rate
+learning_rate: 0.0001
+
+# max number of epochs, stopped by callbacks
+max_epochs: 6000
+
+# patience for callbacks
+patience: 10
+
+# model to use
+#model: "tfc.model.networks.regression.regression_unet.unet_batchnorm_regression(nclass=1, input_size=(128, 128, 2),maps=[16, 32, 64, 128, 256])"
+model: 'tfc.model.networks.regression.regression_unet.unet_batchnorm_regression(nclass=1, input_size=(256, 256, 2), maps=[64, 128, 256, 512, 1024],final_activation="linear")'
+
+
+# loss function to use
+#loss: 'tf.keras.losses.MeanSquaredError()' # no luck
+loss: 'tf.keras.losses.MeanAbsoluteError()'
+
+# optimizer to use
+optimizer: tf.keras.optimizers.Adam
+
+metrics:
+  - 'tf.keras.metrics.MeanSquaredError()'
+  - 'tf.keras.metrics.RootMeanSquaredError()'
+  - 'tfa.metrics.RSquare()'
+  - 'tf.keras.metrics.MeanAbsoluteError()'
+
+callbacks:
+  - "tf.keras.callbacks.ModelCheckpoint(save_best_only=True, mode='min', monitor='val_loss', filepath='${model_dir}/{epoch:02d}-{val_loss:.2f}.hdf5')"
+  - "tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=4)"
+  - "tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=False)"
+  - "tf.keras.callbacks.TerminateOnNaN()"
+
+# ---------------------- Prediction Configurations ------------------------ #
+
+inference_overlap: 0.50
+pred_batch_size: 128
+prediction_dtype: float32
+prediction_nodata: -10001
+
+#model_filename: '/explore/nobackup/people/jacaraba/projects/CNN_CHM/v2/senegal/models/20-0.00.hdf5'
+inference_save_dir: '${model_dir}/results'
+inference_regex_list:
+  - '/explore/nobackup/projects/ilab/projects/AIML_CHM/DEM_CHM/data/WV02_20120924_P1BS_103001001C087E00_103001001CB20900-toa-stacked-clipped.tif'
+  - '/explore/nobackup/people/pmontesa/outASP/cnn_mode_test/*/*-stacked*.tif'

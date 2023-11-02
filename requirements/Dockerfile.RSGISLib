@@ -1,0 +1,4 @@
+FROM petebunting/au-eoed
+
+RUN pip install rioxarray geedim ee omegaconf
+

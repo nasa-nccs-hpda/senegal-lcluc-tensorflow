@@ -4,8 +4,19 @@ geoscitools/
 icesat2/
 senegal/
 *.hdf5
+*.h5
 *.out
+*.gpkg
 _footprints/
+
+projects/land_cover/models/
+projects/land_cover/notebooks/forMaggie/
+projects/land_cover/notebooks/forMaggie*
+dask-worker-space/
+logs/
+
+# for now
+*.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

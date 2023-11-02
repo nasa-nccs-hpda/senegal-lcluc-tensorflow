@@ -1,0 +1,22 @@
+square_number: 01
+
+algorithm: kmeans
+
+input_dir: '/explore/nobackup/projects/3sl/data/MaxarArd/strips/'
+input_txt_file: '/explore/nobackup/people/mcarrol2/LCLUC_Senegal/Tappan01_WV-MS.txt'
+input_identifier: '-ARD.tif'
+
+clip: True
+upper_left_x: 597415
+upper_left_y: 1468280
+window_size_x: 5000
+window_size_y: 5000
+
+clustering: False
+num_clusters: 60
+random_state: 42
+batch_size: 32
+
+output_pre_str: 'Tappan'
+
+output_dir: '/explore/nobackup/people/cssprad1/projects/3sl/code/development/kmeans_tappan/output/tappan_01'
