@@ -89,6 +89,26 @@ Generate metrics and statistics using validation data.
 singularity exec --env PYTHONPATH="/explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow:/explore/nobackup/people/$USER/development/tensorflow-caney" --nv -B /explore/nobackup/projects/ilab,/explore/nobackup/projects/3sl,$NOBACKUP,/lscratch,/explore/nobackup/people /lscratch/$USER/container/tensorflow-caney python /explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow/senegal_lcluc_tensorflow/view/landcover_cnn_pipeline_cli.py -v '/explore/nobackup/projects/3sl/data/Validation/3sl-validation-database-20230412-all-three-agreed.gpkg'  -c /explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow/projects/land_cover/configs/experiments/2023-GMU-V2/batch1/eCAS-wCAS-otcb-30/eCAS-wCAS-otcb-30.yaml  -s validate
 ```
 
+In some cases we need to perform larger scale validations (for example, N number of subdirectories). The following script allows you to perform the
+validation using the subdirectory where the configuration file is available. All we ned to do is to point to the main directory
+that houses all other configuration subdirectories.
+
+This is an example for general TOA imagery:
+
+```bash
+bash validation_gmu.sh \
+    "/explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow/projects/land_cover/configs/experiments/2023-GMU-V2/batch1/*/*.yaml" \
+    "/explore/nobackup/projects/3sl/data/Validation/3sl-validation-database-2023-10-05-all-row-based_all-agreed.gpkg"
+```
+
+An an example for SRLite scenes:
+
+```bash
+bash validation_gmu.sh \
+    " /explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow/projects/land_cover/configs/experiments/NASA/2023-surface_reflectance/ard_srlite_toa/*/*.yaml" \
+    "/explore/nobackup/projects/3sl/data/Validation/3sl-validation-database-2023-10-05-all-row-based_all-agreed.gpkg"
+```
+
 ## Land Use 1D CNN Workflow
 
 In this workflow we perform land use object segmentation using CNNs.
