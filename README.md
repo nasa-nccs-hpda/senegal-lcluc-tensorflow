@@ -86,14 +86,14 @@ singularity exec --env PYTHONPATH="/explore/nobackup/people/$USER/development/se
 Generate metrics and statistics using validation data.
 
 ```bash
-singularity exec --env PYTHONPATH="/explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow:/explore/nobackup/people/$USER/development/tensorflow-caney" --nv -B /explore/nobackup/projects/ilab,/explore/nobackup/projects/3sl,$NOBACKUP,/lscratch,/explore/nobackup/people /lscratch/$USER/container/tensorflow-caney python /explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow/senegal_lcluc_tensorflow/view/landcover_cnn_pipeline_cli.py -v '/explore/nobackup/projects/3sl/data/Validation/3sl-validation-database-20230412-all-three-agreed.gpkg'  -c /explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow/projects/land_cover/configs/experiments/2023-GMU-V2/batch1/eCAS-wCAS-otcb-30/eCAS-wCAS-otcb-30.yaml  -s validate
+singularity exec --env PYTHONPATH="/explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow:/explore/nobackup/people/jacaraba/development/tensorflow-caney",PROJ_LIB='/usr/share/proj' --nv -B /explore/nobackup/projects/ilab,/explore/nobackup/projects/3sl,$NOBACKUP,/lscratch,/explore/nobackup/people /explore/nobackup/projects/ilab/containers/above-shrubs.2023.07 python /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/senegal_lcluc_tensorflow/view/landcover_cnn_pipeline_cli.py -v '/explore/nobackup/projects/3sl/data/Validation/3sl-validation-database-2023-10-05-all-row-based_all-agreed.gpkg' -c /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/projects/land_cover/configs/experiments/2023-GMU-V2/batch2/eCAS-wCAS-ETZ-otcb-80_repeat3/eCAS-wCAS-ETZ-otcb-80_repeat3.yaml -s validate
 ```
 
 In some cases we need to perform larger scale validations (for example, N number of subdirectories). The following script allows you to perform the
 validation using the subdirectory where the configuration file is available. All we ned to do is to point to the main directory
 that houses all other configuration subdirectories.
 
-This is an example for general TOA imagery:
+This is an example for general TOA imagery using the GMU experiments for the paper:
 
 ```bash
 bash validation_gmu.sh \
@@ -101,12 +101,40 @@ bash validation_gmu.sh \
     "/explore/nobackup/projects/3sl/data/Validation/3sl-validation-database-2023-10-05-all-row-based_all-agreed.gpkg"
 ```
 
-An an example for SRLite scenes:
+An an example for the Surface Reflectance experiments:
 
 ```bash
-bash validation_gmu.sh \
-    " /explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow/projects/land_cover/configs/experiments/NASA/2023-surface_reflectance/ard_srlite_toa/*/*.yaml" \
+bash validation_srlite.sh \
+    "/explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow/projects/land_cover/configs/experiments/NASA/2023-surface_reflectance/ard_srlite_toa/*/*.yaml" \
     "/explore/nobackup/projects/3sl/data/Validation/3sl-validation-database-2023-10-05-all-row-based_all-agreed.gpkg"
+```
+
+## Compositing
+
+After we generate predictions for the entire study area, we need to proceed to create composites. Below you will find the documentation to perform the compositing steps. This pipeline has 3 main steps:
+
+1. Build footprints
+2. Extract metadata
+3. Build composite
+
+Below you will find examples on how to run each one of these.
+
+### Build footprints
+
+```bash
+singularity exec --env PYTHONPATH="/explore/nobackup/people/jacaraba/development/vhr-composite:/explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow" --nv -B $NOBACKUP,/lscratch,/explore/nobackup/people,/explore/nobackup/projects /explore/nobackup/projects/ilab/containers/tensorflow-caney-2023.05 python /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/senegal_lcluc_tensorflow/view/landcover_composite_pipeline_cli.py -c /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/projects/composite/configs/composite_cas.yaml -t /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/projects/composite/configs/tile_lists/test_tile_0.txt -s build_footprints
+```
+
+### Extract metadata
+
+```bash
+singularity exec --env PYTHONPATH="/explore/nobackup/people/jacaraba/development/vhr-composite:/explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow" --nv -B $NOBACKUP,/lscratch,/explore/nobackup/people,/explore/nobackup/projects /explore/nobackup/projects/ilab/containers/tensorflow-caney-2023.05 python /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/senegal_lcluc_tensorflow/view/landcover_composite_pipeline_cli.py -c /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/projects/composite/configs/composite_cas.yaml -t /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/projects/composite/configs/tile_lists/test_tile_0.txt -s extract_metadata
+```
+
+### Build composite
+
+```bash
+singularity exec --env PYTHONPATH="/explore/nobackup/people/jacaraba/development/vhr-composite:/explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow" --nv -B $NOBACKUP,/lscratch,/explore/nobackup/people,/explore/nobackup/projects /explore/nobackup/projects/ilab/containers/tensorflow-caney-2023.05 python /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/senegal_lcluc_tensorflow/view/landcover_composite_pipeline_cli.py -c /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/projects/composite/configs/composite_cas.yaml -t /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/projects/composite/configs/tile_lists/tile_0.txt -s composite
 ```
 
 ## Land Use 1D CNN Workflow
@@ -117,6 +145,77 @@ In this workflow we perform land use object segmentation using CNNs.
 
 ```bash
 singularity exec --env PYTHONPATH="/explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow:/explore/nobackup/people/$USER/development/tensorflow-caney" --nv -B /explore/nobackup/projects/ilab,/explore/nobackup/projects/3sl,$NOBACKUP,/lscratch,/explore/nobackup/people /lscratch/$USER/container/tensorflow-caney python /explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow/senegal_lcluc_tensorflow/view/landuse_cnn_pipeline_cli.py -c /explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow/projects/land_use/configs/landuse.yaml --gee-account 'id-sl-senegal-service-account@ee-3sl-senegal.iam.gserviceaccount.com' --gee-key '/home/$USER/gee/ee-3sl-senegal-8fa70fe1c565.json' -s setup
+```
+
+## CLoud Masking Imagery
+
+In this workflow we use the [vhr-cloudmask]() software to generate cloud masks of our WorldView imagery.
+The command to run cloud mask across the imagery from the PRISM GPU cluster is as follows, where:
+- '-o' is the output directory
+- '-r' is a list of regex where data files live
+- '-s' is the pipeline step to perform which in this case is 'predict'
+
+```bash
+for i in {0..64}; do sbatch --mem-per-cpu=10240 -G1 -c10 -t05-00:00:00 -J clouds -q ilab --wrap="singularity exec --nv -B $NOBACKUP,/explore/nobackup/people,/explore/nobackup/projects /explore/nobackup/projects/ilab/containers/vhr-cloudmask.sif vhr-cloudmask-cli -o '/explore/nobackup/projects/3sl/products/cloudmask/v2' -r '/explore/nobackup/projects/3sl/data/Tappan/new_dates/Tappan*.data.tif' '/explore/nobackup/projects/3sl/data/VHR/new_evhr/5-toas/*toa.tif' -s predict"; done
+```
+
+## TOA vs ARD vs SRLite
+
+The following documentation pertains to the TOA vs ARD vs SRLite experiments. The process requires several pieces and parts,
+but here is a summary of the process for reproducibility. The overall process looks like this:
+
+1. Identify TOA scenes to process.
+2. Run EVHR.
+3. Run SRLite.
+4. Generate Tappan squares.
+5. Run the different CNN experiments (training, inference, validation).
+6. Visualize and summarize.
+
+Below you will find the different commands to run each step from the pipeline.
+
+### Identify TOA scenes to process
+
+In this step we generate a CSV file with the respective TOA scenes available in ADAPT/Explore.
+For this we use a notebook provided by mwooten that queries the NGA database.
+
+### Run EVHR
+
+For this step, we need the list of NTF files together with the output directory where we want to store
+the output data. The output directory is to /explore/nobackup/projects/3sl/data/EVHR/<study_area>, where
+study area is one of CAS, ETZ, SRV.
+
+ILAB Nodes:
+
+```bash
+cd /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/scripts/evhr
+./run_evhr_exec /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/scripts/evhr/input_files_all_senegal/CAS_M1BS_scenes/subset_2010/CAS_M1BS_scenes_noDups_2010_1.csv /explore/nobackup/projects/3sl/data/EVHR/CAS /explore/nobackup/people/iluser/ilab_containers/evhr_4.0.0.sif
+```
+
+PRISM Nodes:
+
+```bash
+salloc --ntasks 1 --cpus-per-task 40 -G1 -t 05-00:00:00 -J lightning
+cd /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/scripts/evhr
+./run_evhr_exec /explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/scripts/evhr/input_files_all_senegal/CAS_M1BS_scenes/subset_2010/CAS_M1BS_scenes_noDups_2010_1.csv /explore/nobackup/projects/3sl/data/EVHR/CAS /lscratch/jacaraba/container/evhr-container
+```
+
+The following are the scenes we need to process via EVHR.
+
+```bash
+/explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/scripts/evhr/input_files_all_senegal/CAS_M1BS_scenes/CAS_M1BS_scenes_noDups_2010.csv
+/explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/scripts/evhr/input_files_all_senegal/CAS_M1BS_scenes/CAS_M1BS_scenes_noDups_2011.csv
+/explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/scripts/evhr/input_files_all_senegal/CAS_M1BS_scenes/CAS_M1BS_scenes_noDups_2012.csv
+/explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/scripts/evhr/input_files_all_senegal/CAS_M1BS_scenes/CAS_M1BS_scenes_noDups_2013.csv
+/explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/scripts/evhr/input_files_all_senegal/CAS_M1BS_scenes/CAS_M1BS_scenes_noDups_2014.csv
+/explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/scripts/evhr/input_files_all_senegal/CAS_M1BS_scenes/CAS_M1BS_scenes_noDups_2015.csv
+/explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/scripts/evhr/input_files_all_senegal/CAS_M1BS_scenes/CAS_M1BS_scenes_noDups_2016.csv
+/explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/scripts/evhr/input_files_all_senegal/CAS_M1BS_scenes/CAS_M1BS_scenes_noDups_2017.csv
+/explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/scripts/evhr/input_files_all_senegal/CAS_M1BS_scenes/CAS_M1BS_scenes_noDups_2018.csv
+/explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/scripts/evhr/input_files_all_senegal/CAS_M1BS_scenes/CAS_M1BS_scenes_noDups_2019.csv
+/explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/scripts/evhr/input_files_all_senegal/CAS_M1BS_scenes/CAS_M1BS_scenes_noDups_2020.csv
+/explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/scripts/evhr/input_files_all_senegal/CAS_M1BS_scenes/CAS_M1BS_scenes_noDups_2021.csv
+/explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/scripts/evhr/input_files_all_senegal/CAS_M1BS_scenes/CAS_M1BS_scenes_noDups_2022.csv
+/explore/nobackup/people/jacaraba/development/senegal-lcluc-tensorflow/scripts/evhr/input_files_all_senegal/CAS_M1BS_scenes/CAS_M1BS_scenes_noDups.csv
 ```
 
 ## Authors
