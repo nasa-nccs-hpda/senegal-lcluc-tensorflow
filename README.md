@@ -26,6 +26,56 @@ updates and upcoming tutorials.
 ![example-study](docs/senegal-example.png)
 
 Figure 2. Wet and dry seasonality for cluster of typical fields in Senegal, Photos from Collaborator Gray Tappan
+## Getting Started
+
+1) Log on to the NASA ADAPT server
+
+```bash
+ssh user@adaptlogin.nasa.gov
+```
+2) Connect to PRISM GPU Cluster
+```bash
+ssh gpulogin1
+```
+3) Request computational resources with Slurm (see [NCCS guide to Slurm on ADAPT](https://www.nccs.nasa.gov/nccs-users/instructional/adapt-instructional/slurm)). For example, to request a quick interactive Slurm job:
+```bash
+salloc -G1 -J composite-text -c 10
+```
+which requests an interactive job (salloc), with 1 GPU (-G), a job name (-J) of "composite-text", and 10 CPU cores (-c). 
+
+4) Create personal directories to work within:
+- Confirm that the $USER environment variable is set to your username
+ ```bash
+echo $USER
+```
+which should return your username.
+* Create a "development" directory
+ ```bash
+mkdir -p /explore/nobackup/people/$USER/development
+```
+
+5) Clone the GitHub
+ ```bash
+cd /explore/nobackup/people/$USER/development # Navigate to development folder
+git clone https://github.com/nasa-nccs-hpda/senegal-lcluc-tensorflow
+```
+
+6) Load necessary module(s).
+ ```bash
+module load singularity
+```
+
+### Bonus Tips
+
+ - If you are using a PIV card to connect, on your local system, save your login keychain to avoid repeatedly entering your pin by entering the following and answering the subsequent prompt:
+ ```bash
+   ssh-add -s /usr/lib/ssh-keychain.dylib
+```
+ - If you plan to open any graphical applications while logged on to the ADAPT server (e.g., QGIS), make sure you have an X11 server installed on your local system (such as [XQuartz](https://www.xquartz.org/) for Mac or [MobaXterm](https://mobaxterm.mobatek.net/) for Windows) and make sure you enable trusted X11 forwarding when logging on to the server:
+ ```bash
+   ssh -Y user@adaptlogin.nasa.gov
+   ssh -Y gpulogin1
+```
 
 ## Downloading the Container
 
@@ -47,7 +97,18 @@ as part of this project, which is free of access through the NICFI program.
 
 To generate training and small samples of data we generated the so called Tappan squares in honor of our
 colleague Gray Tappan. These Tappan squares are 5000x5000 pixel squares, for an area of 10000x10000 m^2.
-Generating Tappan squares can be achieved with the tapann_pipeline_cli.py script. Its execution is as follows:
+Generating Tappan squares can be achieved with the tapann_pipeline_cli.py script. 
+1. First create a folder to save output data:
+```bash
+mkdir -p /explore/nobackup/people/$USER/development/sample_data
+```
+2. Edit the "config" file to save data to the newly created output directory with the editor of your choice. For example, to edit the config file with Vim:
+```bash
+vim /explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow/projects/tappan_generation/configs-srlite/tappan_06.yaml
+```
+Within the config file, set the output directory to: ```/explore/nobackup/people/$USER/development/sample_data/tappan_${square_number}```
+
+4. Execute the Tappan Squares pipeline:
 
 ```bash
 singularity exec --env PYTHONPATH="/explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow:/explore/nobackup/people/$USER/development/tensorflow-caney:/explore/nobackup/people/jacaraba/development" --nv -B /explore/nobackup/projects/ilab,/explore/nobackup/projects/3sl,$NOBACKUP,/explore/nobackup/people /lscratch/$USER/container/tensorflow-caney python /explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow/senegal_lcluc_tensorflow/view/tappan_pipeline_cli.py -c /explore/nobackup/people/$USER/development/senegal-lcluc-tensorflow/projects/tappan_generation/configs-srlite/tappan_06.yaml
@@ -240,3 +301,4 @@ Please see our [guide for contributing to terragpu](CONTRIBUTING.md).
 [2] Paszke, Adam; Gross, Sam; Chintala, Soumith; Chanan, Gregory; et all, PyTorch, (2016), GitHub repository, <https://github.com/pytorch/pytorch>. Accessed 13 February 2020.
 
 [3] Caraballo-Vega, J., Carroll, M., Li, J., & Duffy, D. (2021, December). Towards Scalable & GPU Accelerated Earth Science Imagery Processing: An AI/ML Case Study. In AGU Fall Meeting 2021. AGU.
+
